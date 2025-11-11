@@ -445,6 +445,62 @@ export function FilterBar() {
         setFilters([]);
     };
 
+    const handleRemoveFilter = (filterId: string) => {
+        setFilters(filters.filter((f) => f.id !== filterId));
+    };
+
+    const handleEditFilter = (filter: FilterType) => {
+        // Convert Filter back to FilterRule for editing
+        const filterIndex = filters.findIndex((f) => f.id === filter.id);
+        const when =
+            filterIndex === 0
+                ? "WHEN"
+                : (filter as FilterType & { logicalOperator?: "AND" | "OR" })
+                      .logicalOperator || "AND";
+
+        // Convert values back to string format
+        let value: string | string[] = "";
+        let value2: string | undefined = undefined;
+        let operator = filter.operator;
+
+        // Convert "is_any_of" back to "is" for editing
+        if (operator === "is_any_of") {
+            operator = "is";
+        }
+
+        if (filter.operator === "between" && filter.values.length >= 2) {
+            value = String(filter.values[0]);
+            value2 = String(filter.values[1]);
+        } else if (filter.values.length > 0) {
+            // Handle array of values (for multi-select or is_any_of)
+            if (filter.values.length === 1) {
+                value = String(filter.values[0]);
+            } else {
+                // Multiple values - convert to array of strings
+                value = filter.values.map(String);
+            }
+        }
+
+        const filterRule: FilterRule = {
+            id: filter.id,
+            when,
+            attribute: filter.field,
+            operator,
+            value,
+            value2,
+        };
+
+        setCurrentFilterRule(filterRule);
+        setFilterStep("value"); // Start at value step since attribute and operator are already set
+        setAddFilterPopoverOpen(true);
+    };
+
+    const formatFilterDisplay = (filter: FilterType): string => {
+        const column = allColumns.find((col) => col.id === filter.field);
+        if (!column) return "Unknown";
+        return column.label;
+    };
+
     const handleAddFilterOption = (columnId: string) => {
         // Create a new filter rule with the selected column
         const newRule: FilterRule = {
@@ -571,7 +627,21 @@ export function FilterBar() {
             ).logicalOperator = currentFilterRule.when as "AND" | "OR";
         }
 
-        setFilters([...filters, filter]);
+        // Check if we're editing an existing filter or adding a new one
+        const existingFilterIndex = filters.findIndex(
+            (f) => f.id === currentFilterRule.id
+        );
+
+        if (existingFilterIndex >= 0) {
+            // Update existing filter
+            const updatedFilters = [...filters];
+            updatedFilters[existingFilterIndex] = filter;
+            setFilters(updatedFilters);
+        } else {
+            // Add new filter
+            setFilters([...filters, filter]);
+        }
+
         setAddFilterPopoverOpen(false);
         setCurrentFilterRule(null);
         setFilterStep("attribute");
@@ -587,7 +657,7 @@ export function FilterBar() {
 
     return (
         <div className="bg-white flex items-center justify-between py-3 px-3 border-b border-[#d9dede] shrink-0 overflow-hidden">
-            <div className="flex items-center gap-4 flex-1 min-w-0 overflow-hidden">
+            <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
                 <Popover
                     open={addFilterPopoverOpen}
                     onOpenChange={(open) => {
@@ -608,15 +678,10 @@ export function FilterBar() {
                         >
                             <Plus className="w-3.5 h-3.5" />
                             Add Filter
-                            {filters.length > 0 && (
-                                <span className="ml-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground">
-                                    {filters.length}
-                                </span>
-                            )}
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent
-                        className="w-[300px] p-0 border-weak"
+                        className="w-[300px] p-0 border-weak overflow-hidden"
                         align="start"
                     >
                         {filterStep === "attribute" && (
@@ -763,7 +828,7 @@ export function FilterBar() {
                                         )?.label || "Select value"}
                                     </span>
                                 </div>
-                                <div className="max-h-[400px] overflow-y-auto p-4">
+                                <div className="max-h-[400px] overflow-y-auto">
                                     {isDateAttribute(
                                         currentFilterRule.attribute
                                     ) ? (
@@ -1231,7 +1296,7 @@ export function FilterBar() {
                                                     );
                                                 })}
                                             </div>
-                                            <div className="flex gap-2 pt-2 border-t border-weak">
+                                            <div className="flex gap-2 border-t border-weak p-4">
                                                 <Button
                                                     variant="outline"
                                                     onClick={() => {
@@ -1268,11 +1333,38 @@ export function FilterBar() {
                         )}
                     </PopoverContent>
                 </Popover>
+                {filters.map((filter) => {
+                    const column = allColumns.find(
+                        (col) => col.id === filter.field
+                    );
+                    if (!column) return null;
+
+                    return (
+                        <div
+                            key={filter.id}
+                            className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md border border-border bg-background text-xs font-medium cursor-pointer hover:bg-accent transition-colors"
+                            onClick={() => handleEditFilter(filter)}
+                        >
+                            <span className="text-[#262b2b] whitespace-nowrap">
+                                {formatFilterDisplay(filter)}
+                            </span>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemoveFilter(filter.id);
+                                }}
+                                className="flex items-center justify-center h-4 w-4 rounded hover:bg-destructive/10 transition-colors"
+                            >
+                                <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                            </button>
+                        </div>
+                    );
+                })}
                 {filters.length > 0 && (
                     <Button
                         variant="outline"
                         size="sm"
-                        className="h-8 px-2.5 gap-1.25 text-xs border border-border hover:bg-secondary"
+                        className="h-8 px-2.5 gap-1.25 text-xs border border-[#b61f27] text-[#b61f27] hover:bg-[#b61f27]/5"
                         onClick={handleClearFilters}
                     >
                         <X className="w-3.5 h-3.5" />
