@@ -21,6 +21,7 @@
     --border: hsl(214.3 31.8% 91.4%);
     --input: hsl(214.3 31.8% 91.4%);
     --ring: hsl(222.2 84% 4.9%);
+    --brand-active: #158039;
     --radius: 0.5rem;
     --chart-1: hsl(12 76% 61%);
     --chart-2: hsl(173 58% 39%);
@@ -91,6 +92,24 @@
     body {
         background-color: hsl(var(--background));
         color: hsl(var(--foreground));
+    }
+}
+
+@layer utilities {
+    .border-weak {
+        border-color: #d9dede;
+    }
+
+    .brand-active {
+        color: var(--brand-active);
+    }
+
+    .border-brand-active {
+        border-color: var(--brand-active);
+    }
+
+    .ring-brand-active {
+        --tw-ring-color: var(--brand-active);
     }
 }
 

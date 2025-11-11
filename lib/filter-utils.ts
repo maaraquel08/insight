@@ -1,5 +1,10 @@
 import type { Filter } from "@/components/ui/filters";
 
+// Extended Filter type with logical operator support
+export interface FilterWithLogic<T = unknown> extends Filter<T> {
+    logicalOperator?: "AND" | "OR"; // "AND" or "OR" - undefined means it's the first filter (WHEN)
+}
+
 // Map filter field keys to actual data field names
 const FIELD_MAP: Record<string, string> = {
     dateHired: "dateHired",
@@ -233,18 +238,39 @@ function applyFilter<T extends Record<string, unknown>>(
     }
 }
 
-// Filter data based on filters array
+// Filter data based on filters array with AND/OR logic support
 export function filterData<T extends Record<string, unknown>>(
     data: T[],
-    filters: Filter[]
+    filters: (Filter | FilterWithLogic)[]
 ): T[] {
     if (filters.length === 0) {
         return data;
     }
 
     return data.filter((item) => {
-        // All filters must pass (AND logic)
-        return filters.every((filter) => applyFilter(item, filter));
+        // Process filters sequentially with AND/OR logic
+        let result = true; // Start with true for the first filter
+        
+        for (let i = 0; i < filters.length; i++) {
+            const filter = filters[i];
+            const filterResult = applyFilter(item, filter);
+            const logicalOp = (filter as FilterWithLogic).logicalOperator;
+            
+            if (i === 0) {
+                // First filter (WHEN) - just set the result
+                result = filterResult;
+            } else {
+                // Subsequent filters - apply AND/OR logic
+                if (logicalOp === "OR") {
+                    result = result || filterResult;
+                } else {
+                    // Default to AND if not specified
+                    result = result && filterResult;
+                }
+            }
+        }
+        
+        return result;
     });
 }
 
