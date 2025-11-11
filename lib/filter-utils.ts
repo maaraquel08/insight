@@ -117,30 +117,54 @@ function applyFilter<T extends Record<string, unknown>>(
             );
 
         case "equals":
-            if (typeof fieldValue === "number" && typeof filterValues[0] === "number") {
-                return fieldValue === filterValues[0];
+            // Try numeric comparison first
+            const eqFieldNum = typeof fieldValue === "number" ? fieldValue : parseFloat(String(fieldValue));
+            const eqFilterNum = typeof filterValues[0] === "number" ? filterValues[0] : parseFloat(String(filterValues[0]));
+            
+            if (!isNaN(eqFieldNum) && !isNaN(eqFilterNum)) {
+                return eqFieldNum === eqFilterNum;
             }
+            
+            // Fallback to string comparison
             return normalizedFieldValue === normalizeValue(filterValues[0]);
 
         case "not_equals":
-            if (typeof fieldValue === "number" && typeof filterValues[0] === "number") {
-                return fieldValue !== filterValues[0];
+            // Try numeric comparison first
+            const neqFieldNum = typeof fieldValue === "number" ? fieldValue : parseFloat(String(fieldValue));
+            const neqFilterNum = typeof filterValues[0] === "number" ? filterValues[0] : parseFloat(String(filterValues[0]));
+            
+            if (!isNaN(neqFieldNum) && !isNaN(neqFilterNum)) {
+                return neqFieldNum !== neqFilterNum;
             }
+            
+            // Fallback to string comparison
             return normalizedFieldValue !== normalizeValue(filterValues[0]);
 
         case "greater_than":
-            if (typeof fieldValue === "number" && typeof filterValues[0] === "number") {
-                return fieldValue > filterValues[0];
+            // Try numeric comparison first
+            const gtFieldNum = typeof fieldValue === "number" ? fieldValue : parseFloat(String(fieldValue));
+            const gtFilterNum = typeof filterValues[0] === "number" ? filterValues[0] : parseFloat(String(filterValues[0]));
+            
+            if (!isNaN(gtFieldNum) && !isNaN(gtFilterNum)) {
+                return gtFieldNum > gtFilterNum;
             }
+            
+            // Fallback to date comparison for strings
             if (typeof fieldValue === "string" && typeof filterValues[0] === "string") {
                 return compareDates(fieldValue, filterValues[0]) > 0;
             }
             return false;
 
         case "less_than":
-            if (typeof fieldValue === "number" && typeof filterValues[0] === "number") {
-                return fieldValue < filterValues[0];
+            // Try numeric comparison first
+            const ltFieldNum = typeof fieldValue === "number" ? fieldValue : parseFloat(String(fieldValue));
+            const ltFilterNum = typeof filterValues[0] === "number" ? filterValues[0] : parseFloat(String(filterValues[0]));
+            
+            if (!isNaN(ltFieldNum) && !isNaN(ltFilterNum)) {
+                return ltFieldNum < ltFilterNum;
             }
+            
+            // Fallback to date comparison for strings
             if (typeof fieldValue === "string" && typeof filterValues[0] === "string") {
                 return compareDates(fieldValue, filterValues[0]) < 0;
             }
@@ -149,7 +173,16 @@ function applyFilter<T extends Record<string, unknown>>(
         case "between":
             if (filterValues.length < 2) return false;
 
-            // Handle date ranges
+            // Try numeric comparison first
+            const betweenFieldNum = typeof fieldValue === "number" ? fieldValue : parseFloat(String(fieldValue));
+            const betweenStartNum = typeof filterValues[0] === "number" ? filterValues[0] : parseFloat(String(filterValues[0]));
+            const betweenEndNum = typeof filterValues[1] === "number" ? filterValues[1] : parseFloat(String(filterValues[1]));
+            
+            if (!isNaN(betweenFieldNum) && !isNaN(betweenStartNum) && !isNaN(betweenEndNum)) {
+                return betweenFieldNum >= betweenStartNum && betweenFieldNum <= betweenEndNum;
+            }
+
+            // Handle date ranges (fallback for strings)
             if (typeof fieldValue === "string" && typeof filterValues[0] === "string" && typeof filterValues[1] === "string") {
                 // Skip if dates are invalid or empty
                 if (!fieldValue || !filterValues[0] || !filterValues[1]) return false;
@@ -164,17 +197,21 @@ function applyFilter<T extends Record<string, unknown>>(
                 return fieldDate >= startDate && fieldDate <= endDate;
             }
 
-            // Handle number ranges
-            if (typeof fieldValue === "number" && typeof filterValues[0] === "number" && typeof filterValues[1] === "number") {
-                return fieldValue >= filterValues[0] && fieldValue <= filterValues[1];
-            }
-
             return false;
 
         case "not_between":
             if (filterValues.length < 2) return false;
 
-            // Handle date ranges
+            // Try numeric comparison first
+            const notBetweenFieldNum = typeof fieldValue === "number" ? fieldValue : parseFloat(String(fieldValue));
+            const notBetweenStartNum = typeof filterValues[0] === "number" ? filterValues[0] : parseFloat(String(filterValues[0]));
+            const notBetweenEndNum = typeof filterValues[1] === "number" ? filterValues[1] : parseFloat(String(filterValues[1]));
+            
+            if (!isNaN(notBetweenFieldNum) && !isNaN(notBetweenStartNum) && !isNaN(notBetweenEndNum)) {
+                return notBetweenFieldNum < notBetweenStartNum || notBetweenFieldNum > notBetweenEndNum;
+            }
+
+            // Handle date ranges (fallback for strings)
             if (typeof fieldValue === "string" && typeof filterValues[0] === "string" && typeof filterValues[1] === "string") {
                 // Skip if dates are invalid or empty
                 if (!fieldValue || !filterValues[0] || !filterValues[1]) return false;
@@ -187,11 +224,6 @@ function applyFilter<T extends Record<string, unknown>>(
                 if (isNaN(fieldDate) || isNaN(startDate) || isNaN(endDate)) return false;
                 
                 return fieldDate < startDate || fieldDate > endDate;
-            }
-
-            // Handle number ranges
-            if (typeof fieldValue === "number" && typeof filterValues[0] === "number" && typeof filterValues[1] === "number") {
-                return fieldValue < filterValues[0] || fieldValue > filterValues[1];
             }
 
             return false;
