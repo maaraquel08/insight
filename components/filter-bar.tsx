@@ -28,6 +28,7 @@ import {
     Plus,
     Minus,
     X,
+    ArrowLeft,
 } from "lucide-react";
 import {
     Filters,
@@ -35,13 +36,6 @@ import {
     type Filter as FilterType,
     type FilterFieldConfig,
 } from "@/components/ui/filters";
-import {
-    Sheet,
-    SheetContent,
-    SheetHeader,
-    SheetTitle,
-    SheetTrigger,
-} from "@/components/ui/sheet";
 import {
     Popover,
     PopoverContent,
@@ -426,173 +420,187 @@ function parseDateString(dateString: string): Date | undefined {
 
 export function FilterBar() {
     const { filters, setFilters } = useFilters();
-    const [sheetOpen, setSheetOpen] = useState(false);
-    const [filterRules, setFilterRules] = useState<FilterRule[]>([
-        {
-            id: "1",
-            when: "WHEN",
-            attribute: "",
-            operator: "",
-            value: "",
-            value2: undefined,
-        },
-    ]);
+    const [addFilterPopoverOpen, setAddFilterPopoverOpen] = useState(false);
+    const [filterSearchTerm, setFilterSearchTerm] = useState("");
+    const [currentFilterRule, setCurrentFilterRule] =
+        useState<FilterRule | null>(null);
+    const [filterStep, setFilterStep] = useState<
+        "attribute" | "operator" | "value"
+    >("attribute");
 
-    const addFilterRule = () => {
-        setFilterRules([
-            ...filterRules,
-            {
-                id: Date.now().toString(),
-                when: "AND", // Default to AND for new filters
-                attribute: "",
-                operator: "",
-                value: "",
-                value2: undefined,
-            },
-        ]);
-    };
-
-    const removeFilterRule = (id: string) => {
-        if (filterRules.length > 1) {
-            const newRules = filterRules.filter((rule) => rule.id !== id);
-            // If we removed the first rule, make the new first rule "WHEN"
-            if (filterRules[0].id === id && newRules.length > 0) {
-                newRules[0].when = "WHEN";
-            }
-            setFilterRules(newRules);
-        }
-    };
-
-    const updateFilterRule = (
-        id: string,
+    const updateCurrentFilterRule = (
         field: keyof FilterRule,
-        value: string | string[]
+        value: string | string[] | undefined
     ) => {
-        setFilterRules((prevRules) =>
-            prevRules.map((rule) =>
-                rule.id === id ? { ...rule, [field]: value } : rule
-            )
-        );
+        if (!currentFilterRule) return;
+        setCurrentFilterRule({ ...currentFilterRule, [field]: value });
     };
 
-    const updateFilterRuleMultiple = (
-        id: string,
-        updates: Partial<FilterRule>
-    ) => {
-        setFilterRules((prevRules) =>
-            prevRules.map((rule) =>
-                rule.id === id ? { ...rule, ...updates } : rule
-            )
-        );
-    };
-
-    const handleApply = () => {
-        // Convert filterRules to Filter format with logical operators
-        const newFilters: (FilterType & { logicalOperator?: "AND" | "OR" })[] =
-            filterRules
-                .filter((rule) => {
-                    // For "between" operator, both value and value2 are required
-                    if (rule.operator === "between") {
-                        return (
-                            rule.attribute &&
-                            rule.operator &&
-                            rule.value &&
-                            rule.value2
-                        );
-                    }
-                    // For other operators, check if value exists (string or non-empty array)
-                    const hasValue = Array.isArray(rule.value)
-                        ? rule.value.length > 0
-                        : rule.value && rule.value !== "";
-                    return rule.attribute && rule.operator && hasValue;
-                })
-                .map((rule) => {
-                    // Check if this is a numeric field
-                    const isNumeric = isNumericAttribute(rule.attribute);
-                    const isDate = isDateAttribute(rule.attribute);
-
-                    // Convert values to appropriate types
-                    let processedValues: (string | number)[] = [];
-
-                    if (rule.operator === "between" && rule.value2) {
-                        if (isNumeric && !isDate) {
-                            // Convert to numbers for numeric fields
-                            const valueStr = Array.isArray(rule.value)
-                                ? rule.value[0]
-                                : rule.value;
-                            const num1 = parseFloat(valueStr);
-                            const num2 = parseFloat(rule.value2);
-                            processedValues = [
-                                !isNaN(num1) ? num1 : valueStr,
-                                !isNaN(num2) ? num2 : rule.value2,
-                            ];
-                        } else {
-                            // Keep as strings for date/text fields
-                            const valueStr = Array.isArray(rule.value)
-                                ? rule.value[0]
-                                : rule.value;
-                            processedValues = [valueStr, rule.value2];
-                        }
-                    } else {
-                        // Handle single or multiple values
-                        const valuesToProcess = Array.isArray(rule.value)
-                            ? rule.value
-                            : [rule.value];
-
-                        if (isNumeric && !isDate) {
-                            // Convert to numbers for numeric fields
-                            processedValues = valuesToProcess.map((val) => {
-                                const num = parseFloat(val);
-                                return !isNaN(num) ? num : val;
-                            });
-                        } else {
-                            // Keep as strings for date/text fields
-                            processedValues = valuesToProcess;
-                        }
-                    }
-
-                    // Determine the operator: use "is_any_of" if multiple values, otherwise use the selected operator
-                    let finalOperator = rule.operator;
-                    if (
-                        processedValues.length > 1 &&
-                        (rule.operator === "is" || rule.operator === "equals")
-                    ) {
-                        // Convert "is" or "equals" to "is_any_of" for multiple values
-                        finalOperator = "is_any_of";
-                    }
-
-                    const filter: FilterType & {
-                        logicalOperator?: "AND" | "OR";
-                    } = {
-                        id: rule.id,
-                        field: rule.attribute,
-                        operator: finalOperator,
-                        values: processedValues,
-                    };
-                    // Add logical operator if it's not the first filter (WHEN)
-                    if (rule.when !== "WHEN") {
-                        filter.logicalOperator = rule.when as "AND" | "OR";
-                    }
-                    return filter;
-                });
-
-        setFilters(newFilters as FilterType[]);
-        setSheetOpen(false);
-    };
-
-    const handleCancel = () => {
-        setSheetOpen(false);
+    const updateCurrentFilterRuleMultiple = (updates: Partial<FilterRule>) => {
+        if (!currentFilterRule) return;
+        setCurrentFilterRule({ ...currentFilterRule, ...updates });
     };
 
     const handleClearFilters = () => {
         setFilters([]);
     };
 
+    const handleAddFilterOption = (columnId: string) => {
+        // Create a new filter rule with the selected column
+        const newRule: FilterRule = {
+            id: Date.now().toString(),
+            when: filters.length === 0 ? "WHEN" : "AND",
+            attribute: columnId,
+            operator: "",
+            value: "",
+            value2: undefined,
+        };
+        setCurrentFilterRule(newRule);
+        setFilterStep("operator");
+        setFilterSearchTerm(""); // Clear search when moving to next step
+    };
+
+    const handleSelectOperator = (operator: string) => {
+        if (!currentFilterRule) return;
+        setCurrentFilterRule({
+            ...currentFilterRule,
+            operator,
+            value: "",
+            value2: undefined,
+        });
+        setFilterStep("value");
+    };
+
+    const handleBackToAttributes = () => {
+        setFilterStep("attribute");
+        setCurrentFilterRule(null);
+        setFilterSearchTerm("");
+    };
+
+    const handleBackToOperators = () => {
+        setFilterStep("operator");
+    };
+
+    const handleApplyFilter = () => {
+        if (!currentFilterRule) return;
+
+        // Check if filter is valid
+        if (currentFilterRule.operator === "between") {
+            if (
+                !currentFilterRule.attribute ||
+                !currentFilterRule.operator ||
+                !currentFilterRule.value ||
+                !currentFilterRule.value2
+            ) {
+                return;
+            }
+        } else {
+            const hasValue = Array.isArray(currentFilterRule.value)
+                ? currentFilterRule.value.length > 0
+                : currentFilterRule.value && currentFilterRule.value !== "";
+            if (
+                !currentFilterRule.attribute ||
+                !currentFilterRule.operator ||
+                !hasValue
+            ) {
+                return;
+            }
+        }
+
+        // Convert to Filter format
+        const isNumeric = isNumericAttribute(currentFilterRule.attribute);
+        const isDate = isDateAttribute(currentFilterRule.attribute);
+
+        let processedValues: (string | number)[] = [];
+
+        if (
+            currentFilterRule.operator === "between" &&
+            currentFilterRule.value2
+        ) {
+            if (isNumeric && !isDate) {
+                const valueStr = Array.isArray(currentFilterRule.value)
+                    ? currentFilterRule.value[0]
+                    : currentFilterRule.value;
+                const num1 = parseFloat(valueStr);
+                const num2 = parseFloat(currentFilterRule.value2);
+                processedValues = [
+                    !isNaN(num1) ? num1 : valueStr,
+                    !isNaN(num2) ? num2 : currentFilterRule.value2,
+                ];
+            } else {
+                const valueStr = Array.isArray(currentFilterRule.value)
+                    ? currentFilterRule.value[0]
+                    : currentFilterRule.value;
+                processedValues = [valueStr, currentFilterRule.value2];
+            }
+        } else {
+            const valuesToProcess = Array.isArray(currentFilterRule.value)
+                ? currentFilterRule.value
+                : [currentFilterRule.value];
+
+            if (isNumeric && !isDate) {
+                processedValues = valuesToProcess.map((val) => {
+                    const num = parseFloat(val);
+                    return !isNaN(num) ? num : val;
+                });
+            } else {
+                processedValues = valuesToProcess;
+            }
+        }
+
+        let finalOperator = currentFilterRule.operator;
+        if (
+            processedValues.length > 1 &&
+            (currentFilterRule.operator === "is" ||
+                currentFilterRule.operator === "equals")
+        ) {
+            finalOperator = "is_any_of";
+        }
+
+        const filter: FilterType = {
+            id: currentFilterRule.id,
+            field: currentFilterRule.attribute,
+            operator: finalOperator,
+            values: processedValues,
+        };
+
+        // Add logical operator if it's not the first filter
+        if (currentFilterRule.when !== "WHEN") {
+            (
+                filter as FilterType & { logicalOperator?: "AND" | "OR" }
+            ).logicalOperator = currentFilterRule.when as "AND" | "OR";
+        }
+
+        setFilters([...filters, filter]);
+        setAddFilterPopoverOpen(false);
+        setCurrentFilterRule(null);
+        setFilterStep("attribute");
+        setFilterSearchTerm("");
+    };
+
+    const handleCancelFilter = () => {
+        setAddFilterPopoverOpen(false);
+        setCurrentFilterRule(null);
+        setFilterStep("attribute");
+        setFilterSearchTerm("");
+    };
+
     return (
         <div className="bg-white flex items-center justify-between py-3 px-3 border-b border-[#d9dede] shrink-0 overflow-hidden">
             <div className="flex items-center gap-4 flex-1 min-w-0 overflow-hidden">
-                <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-                    <SheetTrigger asChild>
+                <Popover
+                    open={addFilterPopoverOpen}
+                    onOpenChange={(open) => {
+                        setAddFilterPopoverOpen(open);
+                        if (!open) {
+                            // Reset when popover closes
+                            setFilterStep("attribute");
+                            setCurrentFilterRule(null);
+                            setFilterSearchTerm("");
+                        }
+                    }}
+                >
+                    <PopoverTrigger asChild>
                         <Button
                             variant="outline"
                             size="sm"
@@ -606,315 +614,197 @@ export function FilterBar() {
                                 </span>
                             )}
                         </Button>
-                    </SheetTrigger>
-                    <SheetContent
-                        side="right"
-                        className="w-[360px] p-0 flex flex-col"
+                    </PopoverTrigger>
+                    <PopoverContent
+                        className="w-[300px] p-0 border-weak"
+                        align="start"
                     >
-                        {/* Header */}
-                        <SheetHeader className="flex-row items-center justify-between border-b border-weak px-4 py-4">
-                            <SheetTitle className="text-base font-medium text-[#262b2b]">
-                                Filter
-                            </SheetTitle>
-                        </SheetHeader>
+                        {filterStep === "attribute" && (
+                            <>
+                                <div className="border-b border-weak">
+                                    <Input
+                                        placeholder="Search filters..."
+                                        className="h-9 border-0 rounded-none focus-visible:ring-0"
+                                        value={filterSearchTerm}
+                                        onChange={(e) =>
+                                            setFilterSearchTerm(e.target.value)
+                                        }
+                                    />
+                                </div>
+                                <div className="max-h-[400px] overflow-y-auto">
+                                    {(() => {
+                                        const searchTerm = filterSearchTerm
+                                            .toLowerCase()
+                                            .trim();
+                                        const filteredCategories: Array<
+                                            [string, typeof allColumns]
+                                        > = Array.from(
+                                            getColumnsByCategory()
+                                        ).map(([category, columns]) => [
+                                            category,
+                                            columns.filter(
+                                                (col) =>
+                                                    col.label
+                                                        .toLowerCase()
+                                                        .includes(searchTerm) ||
+                                                    category
+                                                        .toLowerCase()
+                                                        .includes(searchTerm)
+                                            ),
+                                        ]);
 
-                        {/* Body - Scrollable */}
-                        <div className="flex-1 overflow-y-auto">
-                            {filterRules.map((rule, index) => (
-                                <div
-                                    key={rule.id}
-                                    className={cn(
-                                        "border-b border-weak p-4",
-                                        index === filterRules.length - 1 &&
-                                            "border-b-0"
-                                    )}
-                                >
-                                    <div className="flex flex-col gap-3">
-                                        <div className="flex flex-col gap-2">
-                                            {/* WHEN/AND/OR Field */}
-                                            {index === 0 ? (
-                                                <Input
-                                                    placeholder="WHEN"
-                                                    value="WHEN"
-                                                    disabled
-                                                    className="h-9 text-sm border-weak rounded-md bg-gray-50"
-                                                />
-                                            ) : (
-                                                <Select
-                                                    value={rule.when}
-                                                    onValueChange={(value) =>
-                                                        updateFilterRule(
-                                                            rule.id,
-                                                            "when",
-                                                            value
-                                                        )
-                                                    }
-                                                >
-                                                    <SelectTrigger className="h-9 text-sm border-weak rounded-md">
-                                                        <SelectValue placeholder="AND" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="AND">
-                                                            AND
-                                                        </SelectItem>
-                                                        <SelectItem value="OR">
-                                                            OR
-                                                        </SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            )}
+                                        const hasResults =
+                                            filteredCategories.some(
+                                                ([_, cols]) => cols.length > 0
+                                            );
 
-                                            {/* Attribute Dropdown */}
-                                            <Select
-                                                value={rule.attribute}
-                                                onValueChange={(value) => {
-                                                    // Update attribute and reset operator/value in a single state update
-                                                    updateFilterRuleMultiple(
-                                                        rule.id,
-                                                        {
-                                                            attribute: value,
-                                                            operator: "",
-                                                            value: "",
-                                                        }
-                                                    );
-                                                }}
-                                            >
-                                                <SelectTrigger className="h-9 text-sm border-weak rounded-md">
-                                                    <SelectValue placeholder="Attribute" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {Array.from(
-                                                        getColumnsByCategory()
-                                                    ).map(
-                                                        ([
-                                                            category,
-                                                            columns,
-                                                        ]) => (
-                                                            <SelectGroup
-                                                                key={category}
-                                                            >
-                                                                <SelectLabel>
-                                                                    {category}
-                                                                </SelectLabel>
-                                                                {columns.map(
-                                                                    (
-                                                                        column
-                                                                    ) => (
-                                                                        <SelectItem
-                                                                            key={
-                                                                                column.id
-                                                                            }
-                                                                            value={
-                                                                                column.id
-                                                                            }
-                                                                        >
-                                                                            {
-                                                                                column.label
-                                                                            }
-                                                                        </SelectItem>
-                                                                    )
-                                                                )}
-                                                            </SelectGroup>
-                                                        )
-                                                    )}
-                                                </SelectContent>
-                                            </Select>
+                                        if (!hasResults && searchTerm) {
+                                            return (
+                                                <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                                                    No filters found.
+                                                </div>
+                                            );
+                                        }
 
-                                            {/* Operator Dropdown */}
-                                            <Select
-                                                value={rule.operator}
-                                                onValueChange={(value) => {
-                                                    // Update operator and reset value/value2 in a single state update
-                                                    updateFilterRuleMultiple(
-                                                        rule.id,
-                                                        {
-                                                            operator: value,
-                                                            value: "",
-                                                            value2: undefined,
-                                                        }
-                                                    );
-                                                }}
-                                                disabled={!rule.attribute}
-                                            >
-                                                <SelectTrigger className="h-9 text-sm border-weak rounded-md">
-                                                    <SelectValue placeholder="Operator" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {getOperatorsForAttribute(
-                                                        rule.attribute
-                                                    ).map((op) => (
-                                                        <SelectItem
-                                                            key={op.value}
-                                                            value={op.value}
-                                                        >
-                                                            {op.label}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-
-                                            {/* Value Field - Conditional based on attribute type */}
-                                            {isDateAttribute(rule.attribute) ? (
-                                                // Date: Popover with Calendar
-                                                rule.operator === "between" ? (
-                                                    // Between: Two date pickers
-                                                    <div className="flex gap-2">
-                                                        <Popover>
-                                                            <PopoverTrigger
-                                                                asChild
-                                                            >
-                                                                <Button
-                                                                    variant="outline"
-                                                                    className={cn(
-                                                                        "h-9 w-full text-sm border-weak rounded-md justify-between font-normal",
-                                                                        !rule.value &&
-                                                                            "text-muted-foreground"
-                                                                    )}
-                                                                    disabled={
-                                                                        !rule.attribute
+                                        return filteredCategories.map(
+                                            ([category, columns]) => {
+                                                if (columns.length === 0)
+                                                    return null;
+                                                return (
+                                                    <div
+                                                        key={category}
+                                                        className="border-b border-weak last:border-b-0"
+                                                    >
+                                                        <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                                                            {category}
+                                                        </div>
+                                                        {columns.map(
+                                                            (
+                                                                column: (typeof allColumns)[number]
+                                                            ) => (
+                                                                <button
+                                                                    key={
+                                                                        column.id
                                                                     }
-                                                                >
-                                                                    <span>
-                                                                        {rule.value
-                                                                            ? formatDateForInput(
-                                                                                  parseDateString(
-                                                                                      Array.isArray(
-                                                                                          rule.value
-                                                                                      )
-                                                                                          ? rule
-                                                                                                .value[0]
-                                                                                          : rule.value
-                                                                                  )
-                                                                              )
-                                                                            : "Start Date"}
-                                                                    </span>
-                                                                    <ChevronDown className="h-4 w-4 opacity-50" />
-                                                                </Button>
-                                                            </PopoverTrigger>
-                                                            <PopoverContent
-                                                                className="w-[328px] p-0"
-                                                                align="start"
-                                                            >
-                                                                <Calendar
-                                                                    className="w-full"
-                                                                    mode="single"
-                                                                    captionLayout="dropdown"
-                                                                    selected={parseDateString(
-                                                                        Array.isArray(
-                                                                            rule.value
-                                                                        )
-                                                                            ? rule
-                                                                                  .value[0]
-                                                                            : rule.value
-                                                                    )}
-                                                                    onSelect={(
-                                                                        date
-                                                                    ) => {
-                                                                        updateFilterRule(
-                                                                            rule.id,
-                                                                            "value",
-                                                                            date
-                                                                                ? formatDateForInput(
-                                                                                      date
-                                                                                  )
-                                                                                : ""
+                                                                    onClick={() => {
+                                                                        handleAddFilterOption(
+                                                                            column.id
                                                                         );
-                                                                    }}
-                                                                    initialFocus
-                                                                />
-                                                            </PopoverContent>
-                                                        </Popover>
-                                                        <Popover>
-                                                            <PopoverTrigger
-                                                                asChild
-                                                            >
-                                                                <Button
-                                                                    variant="outline"
-                                                                    className={cn(
-                                                                        "h-9 w-full text-sm border-weak rounded-md justify-between font-normal",
-                                                                        !rule.value2 &&
-                                                                            "text-muted-foreground"
-                                                                    )}
-                                                                    disabled={
-                                                                        !rule.attribute
-                                                                    }
-                                                                >
-                                                                    <span>
-                                                                        {rule.value2
-                                                                            ? formatDateForInput(
-                                                                                  parseDateString(
-                                                                                      rule.value2
-                                                                                  )
-                                                                              )
-                                                                            : "End Date"}
-                                                                    </span>
-                                                                    <ChevronDown className="h-4 w-4 opacity-50" />
-                                                                </Button>
-                                                            </PopoverTrigger>
-                                                            <PopoverContent
-                                                                className="w-[328px] p-0"
-                                                                align="start"
-                                                            >
-                                                                <Calendar
-                                                                    className="w-full"
-                                                                    mode="single"
-                                                                    captionLayout="dropdown"
-                                                                    selected={parseDateString(
-                                                                        rule.value2 ||
+                                                                        setFilterSearchTerm(
                                                                             ""
-                                                                    )}
-                                                                    onSelect={(
-                                                                        date
-                                                                    ) => {
-                                                                        updateFilterRule(
-                                                                            rule.id,
-                                                                            "value2",
-                                                                            date
-                                                                                ? formatDateForInput(
-                                                                                      date
-                                                                                  )
-                                                                                : ""
                                                                         );
                                                                     }}
-                                                                    initialFocus
-                                                                />
-                                                            </PopoverContent>
-                                                        </Popover>
+                                                                    className="w-full px-4 py-3 text-sm text-[#262b2b] whitespace-nowrap text-left hover:bg-accent transition-colors"
+                                                                >
+                                                                    {
+                                                                        column.label
+                                                                    }
+                                                                </button>
+                                                            )
+                                                        )}
                                                     </div>
-                                                ) : (
-                                                    // Single date picker
+                                                );
+                                            }
+                                        );
+                                    })()}
+                                </div>
+                            </>
+                        )}
+
+                        {filterStep === "operator" && currentFilterRule && (
+                            <>
+                                <div className="border-b border-weak px-4 py-2 flex items-center gap-2">
+                                    <button
+                                        onClick={handleBackToAttributes}
+                                        className="flex items-center justify-center h-6 w-6 hover:bg-accent rounded transition-colors"
+                                    >
+                                        <ArrowLeft className="h-4 w-4" />
+                                    </button>
+                                    <span className="text-sm font-medium text-[#262b2b]">
+                                        {allColumns.find(
+                                            (col) =>
+                                                col.id ===
+                                                currentFilterRule.attribute
+                                        )?.label || "Select operator"}
+                                    </span>
+                                </div>
+                                <div className="max-h-[400px] overflow-y-auto">
+                                    {getOperatorsForAttribute(
+                                        currentFilterRule.attribute
+                                    ).map((op) => (
+                                        <button
+                                            key={op.value}
+                                            onClick={() => {
+                                                handleSelectOperator(op.value);
+                                            }}
+                                            className="w-full px-4 py-3 text-sm text-[#262b2b] whitespace-nowrap text-left hover:bg-accent transition-colors"
+                                        >
+                                            {op.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+
+                        {filterStep === "value" && currentFilterRule && (
+                            <>
+                                <div className="border-b border-weak px-4 py-2 flex items-center gap-2">
+                                    <button
+                                        onClick={handleBackToOperators}
+                                        className="flex items-center justify-center h-6 w-6 hover:bg-accent rounded transition-colors"
+                                    >
+                                        <ArrowLeft className="h-4 w-4" />
+                                    </button>
+                                    <span className="text-sm font-medium text-[#262b2b]">
+                                        {allColumns.find(
+                                            (col) =>
+                                                col.id ===
+                                                currentFilterRule.attribute
+                                        )?.label || "Select value"}
+                                    </span>
+                                </div>
+                                <div className="max-h-[400px] overflow-y-auto p-4">
+                                    {isDateAttribute(
+                                        currentFilterRule.attribute
+                                    ) ? (
+                                        // Date: Calendar picker
+                                        currentFilterRule.operator ===
+                                        "between" ? (
+                                            // Between: Two date pickers
+                                            <div className="flex flex-col gap-3">
+                                                <div>
+                                                    <label className="text-xs text-muted-foreground mb-1 block">
+                                                        Start Date
+                                                    </label>
                                                     <Popover>
                                                         <PopoverTrigger asChild>
                                                             <Button
                                                                 variant="outline"
                                                                 className={cn(
                                                                     "h-9 w-full text-sm border-weak rounded-md justify-between font-normal",
-                                                                    !rule.value &&
+                                                                    !currentFilterRule.value &&
                                                                         "text-muted-foreground"
                                                                 )}
-                                                                disabled={
-                                                                    !rule.attribute
-                                                                }
                                                             >
                                                                 <span>
-                                                                    {rule.value
+                                                                    {currentFilterRule.value
                                                                         ? formatDateForInput(
                                                                               parseDateString(
                                                                                   Array.isArray(
-                                                                                      rule.value
+                                                                                      currentFilterRule.value
                                                                                   )
-                                                                                      ? rule
+                                                                                      ? currentFilterRule
                                                                                             .value[0]
-                                                                                      : rule.value
+                                                                                      : currentFilterRule.value
                                                                               )
                                                                           )
-                                                                        : "Select date"}
+                                                                        : "Select start date"}
                                                                 </span>
                                                                 <ChevronDown className="h-4 w-4 opacity-50" />
                                                             </Button>
                                                         </PopoverTrigger>
                                                         <PopoverContent
-                                                            className="p-0 w-[328px]"
+                                                            className="w-[328px] p-0"
                                                             align="start"
                                                         >
                                                             <Calendar
@@ -923,17 +813,16 @@ export function FilterBar() {
                                                                 captionLayout="dropdown"
                                                                 selected={parseDateString(
                                                                     Array.isArray(
-                                                                        rule.value
+                                                                        currentFilterRule.value
                                                                     )
-                                                                        ? rule
+                                                                        ? currentFilterRule
                                                                               .value[0]
-                                                                        : rule.value
+                                                                        : currentFilterRule.value
                                                                 )}
                                                                 onSelect={(
                                                                     date
                                                                 ) => {
-                                                                    updateFilterRule(
-                                                                        rule.id,
+                                                                    updateCurrentFilterRule(
                                                                         "value",
                                                                         date
                                                                             ? formatDateForInput(
@@ -946,334 +835,439 @@ export function FilterBar() {
                                                             />
                                                         </PopoverContent>
                                                     </Popover>
-                                                )
-                                            ) : isNumericAttribute(
-                                                  rule.attribute
-                                              ) ? (
-                                                // Numeric: Popover with Number Input
-                                                rule.operator === "between" ? (
-                                                    // Between: Two number inputs
-                                                    <div className="flex gap-2">
-                                                        <Popover>
-                                                            <PopoverTrigger
-                                                                asChild
-                                                            >
-                                                                <Button
-                                                                    variant="outline"
-                                                                    className={cn(
-                                                                        "h-9 w-full text-sm border-weak rounded-md justify-between font-normal",
-                                                                        !rule.value &&
-                                                                            "text-muted-foreground"
-                                                                    )}
-                                                                    disabled={
-                                                                        !rule.attribute
-                                                                    }
-                                                                >
-                                                                    <span>
-                                                                        {rule.value ||
-                                                                            "Min"}
-                                                                    </span>
-                                                                    <ChevronDown className="h-4 w-4 opacity-50" />
-                                                                </Button>
-                                                            </PopoverTrigger>
-                                                            <PopoverContent
-                                                                className="w-auto p-3"
-                                                                align="start"
-                                                            >
-                                                                <Input
-                                                                    type="number"
-                                                                    placeholder="Min"
-                                                                    value={
-                                                                        rule.value
-                                                                    }
-                                                                    onChange={(
-                                                                        e
-                                                                    ) => {
-                                                                        updateFilterRule(
-                                                                            rule.id,
-                                                                            "value",
-                                                                            e
-                                                                                .target
-                                                                                .value
-                                                                        );
-                                                                    }}
-                                                                    autoFocus
-                                                                    className="w-48"
-                                                                />
-                                                            </PopoverContent>
-                                                        </Popover>
-                                                        <Popover>
-                                                            <PopoverTrigger
-                                                                asChild
-                                                            >
-                                                                <Button
-                                                                    variant="outline"
-                                                                    className={cn(
-                                                                        "h-9 w-full text-sm border-weak rounded-md justify-between font-normal",
-                                                                        !rule.value2 &&
-                                                                            "text-muted-foreground"
-                                                                    )}
-                                                                    disabled={
-                                                                        !rule.attribute
-                                                                    }
-                                                                >
-                                                                    <span>
-                                                                        {rule.value2 ||
-                                                                            "Max"}
-                                                                    </span>
-                                                                    <ChevronDown className="h-4 w-4 opacity-50" />
-                                                                </Button>
-                                                            </PopoverTrigger>
-                                                            <PopoverContent
-                                                                className="w-auto p-3"
-                                                                align="start"
-                                                            >
-                                                                <Input
-                                                                    type="number"
-                                                                    placeholder="Max"
-                                                                    value={
-                                                                        rule.value2 ||
-                                                                        ""
-                                                                    }
-                                                                    onChange={(
-                                                                        e
-                                                                    ) => {
-                                                                        updateFilterRule(
-                                                                            rule.id,
-                                                                            "value2",
-                                                                            e
-                                                                                .target
-                                                                                .value
-                                                                        );
-                                                                    }}
-                                                                    autoFocus
-                                                                    className="w-48"
-                                                                />
-                                                            </PopoverContent>
-                                                        </Popover>
-                                                    </div>
-                                                ) : (
-                                                    // Single number input
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-muted-foreground mb-1 block">
+                                                        End Date
+                                                    </label>
                                                     <Popover>
                                                         <PopoverTrigger asChild>
                                                             <Button
                                                                 variant="outline"
                                                                 className={cn(
                                                                     "h-9 w-full text-sm border-weak rounded-md justify-between font-normal",
-                                                                    !rule.value &&
+                                                                    !currentFilterRule.value2 &&
                                                                         "text-muted-foreground"
                                                                 )}
-                                                                disabled={
-                                                                    !rule.attribute
-                                                                }
                                                             >
                                                                 <span>
-                                                                    {rule.value ||
-                                                                        "Value"}
+                                                                    {currentFilterRule.value2
+                                                                        ? formatDateForInput(
+                                                                              parseDateString(
+                                                                                  currentFilterRule.value2
+                                                                              )
+                                                                          )
+                                                                        : "Select end date"}
                                                                 </span>
                                                                 <ChevronDown className="h-4 w-4 opacity-50" />
                                                             </Button>
                                                         </PopoverTrigger>
                                                         <PopoverContent
-                                                            className="w-auto p-3"
+                                                            className="w-[328px] p-0"
                                                             align="start"
                                                         >
-                                                            <Input
-                                                                type="number"
-                                                                placeholder="Value"
-                                                                value={
-                                                                    rule.value
-                                                                }
-                                                                onChange={(
-                                                                    e
+                                                            <Calendar
+                                                                className="w-full"
+                                                                mode="single"
+                                                                captionLayout="dropdown"
+                                                                selected={parseDateString(
+                                                                    currentFilterRule.value2 ||
+                                                                        ""
+                                                                )}
+                                                                onSelect={(
+                                                                    date
                                                                 ) => {
-                                                                    updateFilterRule(
-                                                                        rule.id,
-                                                                        "value",
-                                                                        e.target
-                                                                            .value
+                                                                    updateCurrentFilterRule(
+                                                                        "value2",
+                                                                        date
+                                                                            ? formatDateForInput(
+                                                                                  date
+                                                                              )
+                                                                            : undefined
                                                                     );
                                                                 }}
-                                                                autoFocus
-                                                                className="w-48"
+                                                                initialFocus
                                                             />
                                                         </PopoverContent>
                                                     </Popover>
-                                                )
-                                            ) : (
-                                                // Text: Multi-select Popover with checkboxes
+                                                </div>
+                                                <div className="flex gap-2 pt-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        onClick={() => {
+                                                            setAddFilterPopoverOpen(
+                                                                false
+                                                            );
+                                                            setCurrentFilterRule(
+                                                                null
+                                                            );
+                                                            setFilterStep(
+                                                                "attribute"
+                                                            );
+                                                        }}
+                                                        className="flex-1 h-9 border-[#b8c1c0] text-sm font-medium text-[#262b2b]"
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                    <Button
+                                                        onClick={() => {
+                                                            handleApplyFilter();
+                                                            setAddFilterPopoverOpen(
+                                                                false
+                                                            );
+                                                        }}
+                                                        className="flex-1 h-9 bg-[#158039] hover:bg-[#158039]/90 text-white text-sm font-medium"
+                                                    >
+                                                        Apply
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            // Single date picker
+                                            <div className="flex flex-col gap-3">
                                                 <Popover>
                                                     <PopoverTrigger asChild>
                                                         <Button
                                                             variant="outline"
                                                             className={cn(
                                                                 "h-9 w-full text-sm border-weak rounded-md justify-between font-normal",
-                                                                (!rule.value ||
-                                                                    (Array.isArray(
-                                                                        rule.value
-                                                                    ) &&
-                                                                        rule
-                                                                            .value
-                                                                            .length ===
-                                                                            0)) &&
+                                                                !currentFilterRule.value &&
                                                                     "text-muted-foreground"
                                                             )}
-                                                            disabled={
-                                                                !rule.attribute
-                                                            }
                                                         >
                                                             <span>
-                                                                {Array.isArray(
-                                                                    rule.value
-                                                                )
-                                                                    ? rule.value
-                                                                          .length ===
-                                                                      0
-                                                                        ? "Value"
-                                                                        : rule
-                                                                              .value
-                                                                              .length ===
-                                                                          1
-                                                                        ? rule
-                                                                              .value[0]
-                                                                        : `${rule.value.length} selected`
-                                                                    : rule.value
-                                                                    ? rule.value
-                                                                    : "Value"}
+                                                                {currentFilterRule.value
+                                                                    ? formatDateForInput(
+                                                                          parseDateString(
+                                                                              Array.isArray(
+                                                                                  currentFilterRule.value
+                                                                              )
+                                                                                  ? currentFilterRule
+                                                                                        .value[0]
+                                                                                  : currentFilterRule.value
+                                                                          )
+                                                                      )
+                                                                    : "Select date"}
                                                             </span>
                                                             <ChevronDown className="h-4 w-4 opacity-50" />
                                                         </Button>
                                                     </PopoverTrigger>
                                                     <PopoverContent
-                                                        className="w-[300px] p-0 border-weak"
+                                                        className="p-0 w-[328px]"
                                                         align="start"
                                                     >
-                                                        <div className="max-h-[300px] overflow-y-auto">
-                                                            {getUniqueValuesForAttribute(
-                                                                rule.attribute
-                                                            ).map((val) => {
-                                                                const selectedValues =
-                                                                    Array.isArray(
-                                                                        rule.value
-                                                                    )
-                                                                        ? rule.value
-                                                                        : rule.value
-                                                                        ? [
-                                                                              rule.value,
-                                                                          ]
-                                                                        : [];
-                                                                const isSelected =
-                                                                    selectedValues.includes(
-                                                                        val
-                                                                    );
-
-                                                                return (
-                                                                    <button
-                                                                        key={
-                                                                            val
-                                                                        }
-                                                                        onClick={() => {
-                                                                            const currentValues =
-                                                                                Array.isArray(
-                                                                                    rule.value
-                                                                                )
-                                                                                    ? rule.value
-                                                                                    : rule.value
-                                                                                    ? [
-                                                                                          rule.value,
-                                                                                      ]
-                                                                                    : [];
-
-                                                                            const newValues =
-                                                                                isSelected
-                                                                                    ? currentValues.filter(
-                                                                                          (
-                                                                                              v
-                                                                                          ) =>
-                                                                                              v !==
-                                                                                              val
-                                                                                      )
-                                                                                    : [
-                                                                                          ...currentValues,
-                                                                                          val,
-                                                                                      ];
-
-                                                                            updateFilterRule(
-                                                                                rule.id,
-                                                                                "value",
-                                                                                newValues.length ===
-                                                                                    1
-                                                                                    ? newValues[0]
-                                                                                    : newValues
-                                                                            );
-                                                                        }}
-                                                                        className="w-full px-4 py-3 text-sm text-[#262b2b] whitespace-nowrap text-left hover:bg-accent transition-colors flex items-center gap-2"
-                                                                    >
-                                                                        <div
-                                                                            className={cn(
-                                                                                "flex h-4 w-4 items-center justify-center rounded border border-weak",
-                                                                                isSelected &&
-                                                                                    "bg-[#158039] border-[#158039]"
-                                                                            )}
-                                                                        >
-                                                                            {isSelected && (
-                                                                                <Check className="h-3 w-3 text-white" />
-                                                                            )}
-                                                                        </div>
-                                                                        <span>
-                                                                            {
-                                                                                val
-                                                                            }
-                                                                        </span>
-                                                                    </button>
+                                                        <Calendar
+                                                            className="w-full"
+                                                            mode="single"
+                                                            captionLayout="dropdown"
+                                                            selected={parseDateString(
+                                                                Array.isArray(
+                                                                    currentFilterRule.value
+                                                                )
+                                                                    ? currentFilterRule
+                                                                          .value[0]
+                                                                    : currentFilterRule.value
+                                                            )}
+                                                            onSelect={(
+                                                                date
+                                                            ) => {
+                                                                updateCurrentFilterRule(
+                                                                    "value",
+                                                                    date
+                                                                        ? formatDateForInput(
+                                                                              date
+                                                                          )
+                                                                        : ""
                                                                 );
-                                                            })}
-                                                        </div>
+                                                            }}
+                                                            initialFocus
+                                                        />
                                                     </PopoverContent>
                                                 </Popover>
-                                            )}
-                                        </div>
+                                                <div className="flex gap-2 pt-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        onClick={() => {
+                                                            setAddFilterPopoverOpen(
+                                                                false
+                                                            );
+                                                            setCurrentFilterRule(
+                                                                null
+                                                            );
+                                                            setFilterStep(
+                                                                "attribute"
+                                                            );
+                                                        }}
+                                                        className="flex-1 h-9 border-[#b8c1c0] text-sm font-medium text-[#262b2b]"
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                    <Button
+                                                        onClick={() => {
+                                                            handleApplyFilter();
+                                                            setAddFilterPopoverOpen(
+                                                                false
+                                                            );
+                                                        }}
+                                                        className="flex-1 h-9 bg-[#158039] hover:bg-[#158039]/90 text-white text-sm font-medium"
+                                                    >
+                                                        Apply
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )
+                                    ) : isNumericAttribute(
+                                          currentFilterRule.attribute
+                                      ) ? (
+                                        // Numeric: Number input
+                                        currentFilterRule.operator ===
+                                        "between" ? (
+                                            // Between: Two number inputs
+                                            <div className="flex flex-col gap-3">
+                                                <div>
+                                                    <label className="text-xs text-muted-foreground mb-1 block">
+                                                        Min
+                                                    </label>
+                                                    <Input
+                                                        type="number"
+                                                        placeholder="Min"
+                                                        value={
+                                                            Array.isArray(
+                                                                currentFilterRule.value
+                                                            )
+                                                                ? currentFilterRule
+                                                                      .value[0]
+                                                                : currentFilterRule.value
+                                                        }
+                                                        onChange={(e) => {
+                                                            updateCurrentFilterRule(
+                                                                "value",
+                                                                e.target.value
+                                                            );
+                                                        }}
+                                                        className="h-9"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-muted-foreground mb-1 block">
+                                                        Max
+                                                    </label>
+                                                    <Input
+                                                        type="number"
+                                                        placeholder="Max"
+                                                        value={
+                                                            currentFilterRule.value2 ||
+                                                            ""
+                                                        }
+                                                        onChange={(e) => {
+                                                            updateCurrentFilterRule(
+                                                                "value2",
+                                                                e.target.value
+                                                            );
+                                                        }}
+                                                        className="h-9"
+                                                    />
+                                                </div>
+                                                <div className="flex gap-2 pt-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        onClick={() => {
+                                                            setAddFilterPopoverOpen(
+                                                                false
+                                                            );
+                                                            setCurrentFilterRule(
+                                                                null
+                                                            );
+                                                            setFilterStep(
+                                                                "attribute"
+                                                            );
+                                                        }}
+                                                        className="flex-1 h-9 border-[#b8c1c0] text-sm font-medium text-[#262b2b]"
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                    <Button
+                                                        onClick={() => {
+                                                            handleApplyFilter();
+                                                            setAddFilterPopoverOpen(
+                                                                false
+                                                            );
+                                                        }}
+                                                        className="flex-1 h-9 bg-[#158039] hover:bg-[#158039]/90 text-white text-sm font-medium"
+                                                    >
+                                                        Apply
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            // Single number input
+                                            <div className="flex flex-col gap-3">
+                                                <Input
+                                                    type="number"
+                                                    placeholder="Value"
+                                                    value={
+                                                        Array.isArray(
+                                                            currentFilterRule.value
+                                                        )
+                                                            ? currentFilterRule
+                                                                  .value[0]
+                                                            : currentFilterRule.value
+                                                    }
+                                                    onChange={(e) => {
+                                                        updateCurrentFilterRule(
+                                                            "value",
+                                                            e.target.value
+                                                        );
+                                                    }}
+                                                    className="h-9"
+                                                    autoFocus
+                                                />
+                                                <div className="flex gap-2 pt-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        onClick={() => {
+                                                            setAddFilterPopoverOpen(
+                                                                false
+                                                            );
+                                                            setCurrentFilterRule(
+                                                                null
+                                                            );
+                                                            setFilterStep(
+                                                                "attribute"
+                                                            );
+                                                        }}
+                                                        className="flex-1 h-9 border-[#b8c1c0] text-sm font-medium text-[#262b2b]"
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                    <Button
+                                                        onClick={() => {
+                                                            handleApplyFilter();
+                                                            setAddFilterPopoverOpen(
+                                                                false
+                                                            );
+                                                        }}
+                                                        className="flex-1 h-9 bg-[#158039] hover:bg-[#158039]/90 text-white text-sm font-medium"
+                                                    >
+                                                        Apply
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )
+                                    ) : (
+                                        // Text: Multi-select with checkboxes
+                                        <div className="flex flex-col gap-3">
+                                            <div className="max-h-[300px] overflow-y-auto">
+                                                {getUniqueValuesForAttribute(
+                                                    currentFilterRule.attribute
+                                                ).map((val) => {
+                                                    const selectedValues =
+                                                        Array.isArray(
+                                                            currentFilterRule.value
+                                                        )
+                                                            ? currentFilterRule.value
+                                                            : currentFilterRule.value
+                                                            ? [
+                                                                  currentFilterRule.value,
+                                                              ]
+                                                            : [];
+                                                    const isSelected =
+                                                        selectedValues.includes(
+                                                            val
+                                                        );
 
-                                        {/* Action Buttons */}
-                                        <div className="flex gap-3">
-                                            <button
-                                                onClick={addFilterRule}
-                                                className="flex items-center justify-center h-9 w-9 border border-[#158039] rounded-md hover:bg-[#158039]/5"
-                                            >
-                                                <Plus className="w-5 h-5 text-[#158039]" />
-                                            </button>
-                                            <button
-                                                onClick={() =>
-                                                    removeFilterRule(rule.id)
-                                                }
-                                                className="flex items-center justify-center h-9 w-9 border border-[#b61f27] rounded-md hover:bg-[#b61f27]/5"
-                                            >
-                                                <Minus className="w-5 h-5 text-[#b61f27]" />
-                                            </button>
+                                                    return (
+                                                        <button
+                                                            key={val}
+                                                            onClick={() => {
+                                                                const currentValues =
+                                                                    Array.isArray(
+                                                                        currentFilterRule.value
+                                                                    )
+                                                                        ? currentFilterRule.value
+                                                                        : currentFilterRule.value
+                                                                        ? [
+                                                                              currentFilterRule.value,
+                                                                          ]
+                                                                        : [];
+
+                                                                const newValues =
+                                                                    isSelected
+                                                                        ? currentValues.filter(
+                                                                              (
+                                                                                  v
+                                                                              ) =>
+                                                                                  v !==
+                                                                                  val
+                                                                          )
+                                                                        : [
+                                                                              ...currentValues,
+                                                                              val,
+                                                                          ];
+
+                                                                updateCurrentFilterRule(
+                                                                    "value",
+                                                                    newValues.length ===
+                                                                        1
+                                                                        ? newValues[0]
+                                                                        : newValues
+                                                                );
+                                                            }}
+                                                            className="w-full px-4 py-3 text-sm text-[#262b2b] whitespace-nowrap text-left hover:bg-accent transition-colors flex items-center gap-2"
+                                                        >
+                                                            <div
+                                                                className={cn(
+                                                                    "flex h-4 w-4 items-center justify-center rounded border border-weak",
+                                                                    isSelected &&
+                                                                        "bg-[#158039] border-[#158039]"
+                                                                )}
+                                                            >
+                                                                {isSelected && (
+                                                                    <Check className="h-3 w-3 text-white" />
+                                                                )}
+                                                            </div>
+                                                            <span>{val}</span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                            <div className="flex gap-2 pt-2 border-t border-weak">
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                        setAddFilterPopoverOpen(
+                                                            false
+                                                        );
+                                                        setCurrentFilterRule(
+                                                            null
+                                                        );
+                                                        setFilterStep(
+                                                            "attribute"
+                                                        );
+                                                    }}
+                                                    className="flex-1 h-9 border-[#b8c1c0] text-sm font-medium text-[#262b2b]"
+                                                >
+                                                    Cancel
+                                                </Button>
+                                                <Button
+                                                    onClick={() => {
+                                                        handleApplyFilter();
+                                                        setAddFilterPopoverOpen(
+                                                            false
+                                                        );
+                                                    }}
+                                                    className="flex-1 h-9 bg-[#158039] hover:bg-[#158039]/90 text-white text-sm font-medium"
+                                                >
+                                                    Apply
+                                                </Button>
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
-                            ))}
-                        </div>
-
-                        {/* Footer */}
-                        <div className="border-t border-weak px-4 py-3 flex items-center justify-end gap-2">
-                            <Button
-                                variant="outline"
-                                onClick={handleCancel}
-                                className="h-9 px-2 border-[#b8c1c0] text-sm font-medium text-[#262b2b]"
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                onClick={handleApply}
-                                className="h-9 px-2 bg-[#158039] hover:bg-[#158039]/90 text-white text-sm font-medium"
-                            >
-                                Apply
-                            </Button>
-                        </div>
-                    </SheetContent>
-                </Sheet>
+                            </>
+                        )}
+                    </PopoverContent>
+                </Popover>
                 {filters.length > 0 && (
                     <Button
                         variant="outline"
