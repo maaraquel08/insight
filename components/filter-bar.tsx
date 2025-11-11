@@ -52,6 +52,7 @@ import { useFilters } from "@/contexts/filter-context";
 import { cn } from "@/lib/utils";
 import { getAllColumns } from "@/app/data/column";
 import { employees } from "@/app/data/sampleData";
+import { Check } from "lucide-react";
 
 const imgFilter =
     "http://localhost:3845/assets/f884bcb0d13035725e37189a5faf1371fa6041df.svg";
@@ -232,7 +233,7 @@ interface FilterRule {
     when: string; // "WHEN" for first, "AND" or "OR" for others
     attribute: string;
     operator: string;
-    value: string;
+    value: string | string[]; // Single value or array of values for multi-select
     value2?: string; // For "between" operator
 }
 
@@ -465,7 +466,7 @@ export function FilterBar() {
     const updateFilterRule = (
         id: string,
         field: keyof FilterRule,
-        value: string
+        value: string | string[]
     ) => {
         setFilterRules((prevRules) =>
             prevRules.map((rule) =>
@@ -499,8 +500,11 @@ export function FilterBar() {
                             rule.value2
                         );
                     }
-                    // For other operators, only value is required
-                    return rule.attribute && rule.operator && rule.value;
+                    // For other operators, check if value exists (string or non-empty array)
+                    const hasValue = Array.isArray(rule.value)
+                        ? rule.value.length > 0
+                        : rule.value && rule.value !== "";
+                    return rule.attribute && rule.operator && hasValue;
                 })
                 .map((rule) => {
                     // Check if this is a numeric field
@@ -513,25 +517,48 @@ export function FilterBar() {
                     if (rule.operator === "between" && rule.value2) {
                         if (isNumeric && !isDate) {
                             // Convert to numbers for numeric fields
-                            const num1 = parseFloat(rule.value);
+                            const valueStr = Array.isArray(rule.value)
+                                ? rule.value[0]
+                                : rule.value;
+                            const num1 = parseFloat(valueStr);
                             const num2 = parseFloat(rule.value2);
                             processedValues = [
-                                !isNaN(num1) ? num1 : rule.value,
+                                !isNaN(num1) ? num1 : valueStr,
                                 !isNaN(num2) ? num2 : rule.value2,
                             ];
                         } else {
                             // Keep as strings for date/text fields
-                            processedValues = [rule.value, rule.value2];
+                            const valueStr = Array.isArray(rule.value)
+                                ? rule.value[0]
+                                : rule.value;
+                            processedValues = [valueStr, rule.value2];
                         }
                     } else {
+                        // Handle single or multiple values
+                        const valuesToProcess = Array.isArray(rule.value)
+                            ? rule.value
+                            : [rule.value];
+
                         if (isNumeric && !isDate) {
-                            // Convert to number for numeric fields
-                            const num = parseFloat(rule.value);
-                            processedValues = [!isNaN(num) ? num : rule.value];
+                            // Convert to numbers for numeric fields
+                            processedValues = valuesToProcess.map((val) => {
+                                const num = parseFloat(val);
+                                return !isNaN(num) ? num : val;
+                            });
                         } else {
-                            // Keep as string for date/text fields
-                            processedValues = [rule.value];
+                            // Keep as strings for date/text fields
+                            processedValues = valuesToProcess;
                         }
+                    }
+
+                    // Determine the operator: use "is_any_of" if multiple values, otherwise use the selected operator
+                    let finalOperator = rule.operator;
+                    if (
+                        processedValues.length > 1 &&
+                        (rule.operator === "is" || rule.operator === "equals")
+                    ) {
+                        // Convert "is" or "equals" to "is_any_of" for multiple values
+                        finalOperator = "is_any_of";
                     }
 
                     const filter: FilterType & {
@@ -539,7 +566,7 @@ export function FilterBar() {
                     } = {
                         id: rule.id,
                         field: rule.attribute,
-                        operator: rule.operator,
+                        operator: finalOperator,
                         values: processedValues,
                     };
                     // Add logical operator if it's not the first filter (WHEN)
@@ -751,7 +778,12 @@ export function FilterBar() {
                                                                         {rule.value
                                                                             ? formatDateForInput(
                                                                                   parseDateString(
-                                                                                      rule.value
+                                                                                      Array.isArray(
+                                                                                          rule.value
+                                                                                      )
+                                                                                          ? rule
+                                                                                                .value[0]
+                                                                                          : rule.value
                                                                                   )
                                                                               )
                                                                             : "Start Date"}
@@ -768,7 +800,12 @@ export function FilterBar() {
                                                                     mode="single"
                                                                     captionLayout="dropdown"
                                                                     selected={parseDateString(
-                                                                        rule.value
+                                                                        Array.isArray(
+                                                                            rule.value
+                                                                        )
+                                                                            ? rule
+                                                                                  .value[0]
+                                                                            : rule.value
                                                                     )}
                                                                     onSelect={(
                                                                         date
@@ -863,7 +900,12 @@ export function FilterBar() {
                                                                     {rule.value
                                                                         ? formatDateForInput(
                                                                               parseDateString(
-                                                                                  rule.value
+                                                                                  Array.isArray(
+                                                                                      rule.value
+                                                                                  )
+                                                                                      ? rule
+                                                                                            .value[0]
+                                                                                      : rule.value
                                                                               )
                                                                           )
                                                                         : "Select date"}
@@ -880,7 +922,12 @@ export function FilterBar() {
                                                                 mode="single"
                                                                 captionLayout="dropdown"
                                                                 selected={parseDateString(
-                                                                    rule.value
+                                                                    Array.isArray(
+                                                                        rule.value
+                                                                    )
+                                                                        ? rule
+                                                                              .value[0]
+                                                                        : rule.value
                                                                 )}
                                                                 onSelect={(
                                                                     date
@@ -1054,34 +1101,136 @@ export function FilterBar() {
                                                     </Popover>
                                                 )
                                             ) : (
-                                                // Text: Select Dropdown with values from data
-                                                <Select
-                                                    value={rule.value}
-                                                    onValueChange={(value) =>
-                                                        updateFilterRule(
-                                                            rule.id,
-                                                            "value",
-                                                            value
-                                                        )
-                                                    }
-                                                    disabled={!rule.attribute}
-                                                >
-                                                    <SelectTrigger className="h-9 text-sm border-weak rounded-md">
-                                                        <SelectValue placeholder="Value" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {getUniqueValuesForAttribute(
-                                                            rule.attribute
-                                                        ).map((val) => (
-                                                            <SelectItem
-                                                                key={val}
-                                                                value={val}
-                                                            >
-                                                                {val}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
+                                                // Text: Multi-select Popover with checkboxes
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <Button
+                                                            variant="outline"
+                                                            className={cn(
+                                                                "h-9 w-full text-sm border-weak rounded-md justify-between font-normal",
+                                                                (!rule.value ||
+                                                                    (Array.isArray(
+                                                                        rule.value
+                                                                    ) &&
+                                                                        rule
+                                                                            .value
+                                                                            .length ===
+                                                                            0)) &&
+                                                                    "text-muted-foreground"
+                                                            )}
+                                                            disabled={
+                                                                !rule.attribute
+                                                            }
+                                                        >
+                                                            <span>
+                                                                {Array.isArray(
+                                                                    rule.value
+                                                                )
+                                                                    ? rule.value
+                                                                          .length ===
+                                                                      0
+                                                                        ? "Value"
+                                                                        : rule
+                                                                              .value
+                                                                              .length ===
+                                                                          1
+                                                                        ? rule
+                                                                              .value[0]
+                                                                        : `${rule.value.length} selected`
+                                                                    : rule.value
+                                                                    ? rule.value
+                                                                    : "Value"}
+                                                            </span>
+                                                            <ChevronDown className="h-4 w-4 opacity-50" />
+                                                        </Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent
+                                                        className="w-[300px] p-0 border-weak"
+                                                        align="start"
+                                                    >
+                                                        <div className="max-h-[300px] overflow-y-auto">
+                                                            {getUniqueValuesForAttribute(
+                                                                rule.attribute
+                                                            ).map((val) => {
+                                                                const selectedValues =
+                                                                    Array.isArray(
+                                                                        rule.value
+                                                                    )
+                                                                        ? rule.value
+                                                                        : rule.value
+                                                                        ? [
+                                                                              rule.value,
+                                                                          ]
+                                                                        : [];
+                                                                const isSelected =
+                                                                    selectedValues.includes(
+                                                                        val
+                                                                    );
+
+                                                                return (
+                                                                    <button
+                                                                        key={
+                                                                            val
+                                                                        }
+                                                                        onClick={() => {
+                                                                            const currentValues =
+                                                                                Array.isArray(
+                                                                                    rule.value
+                                                                                )
+                                                                                    ? rule.value
+                                                                                    : rule.value
+                                                                                    ? [
+                                                                                          rule.value,
+                                                                                      ]
+                                                                                    : [];
+
+                                                                            const newValues =
+                                                                                isSelected
+                                                                                    ? currentValues.filter(
+                                                                                          (
+                                                                                              v
+                                                                                          ) =>
+                                                                                              v !==
+                                                                                              val
+                                                                                      )
+                                                                                    : [
+                                                                                          ...currentValues,
+                                                                                          val,
+                                                                                      ];
+
+                                                                            updateFilterRule(
+                                                                                rule.id,
+                                                                                "value",
+                                                                                newValues.length ===
+                                                                                    1
+                                                                                    ? newValues[0]
+                                                                                    : newValues
+                                                                            );
+                                                                        }}
+                                                                        className="w-full px-4 py-3 text-sm text-[#262b2b] whitespace-nowrap text-left hover:bg-accent transition-colors flex items-center gap-2"
+                                                                    >
+                                                                        <div
+                                                                            className={cn(
+                                                                                "flex h-4 w-4 items-center justify-center rounded border border-weak",
+                                                                                isSelected &&
+                                                                                    "bg-[#158039] border-[#158039]"
+                                                                            )}
+                                                                        >
+                                                                            {isSelected && (
+                                                                                <Check className="h-3 w-3 text-white" />
+                                                                            )}
+                                                                        </div>
+                                                                        <span>
+                                                                            {
+                                                                                val
+                                                                            }
+                                                                        </span>
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </PopoverContent>
+                                                </Popover>
                                             )}
                                         </div>
 

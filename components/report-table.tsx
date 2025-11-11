@@ -13,6 +13,23 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragEndEvent,
+} from "@dnd-kit/core";
+import {
+    SortableContext,
+    sortableKeyboardCoordinates,
+    horizontalListSortingStrategy,
+    useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVertical } from "lucide-react";
 
 // Helper function to format cell value
 function formatCellValue(value: unknown): string {
@@ -74,10 +91,76 @@ function compareValues(
     return 0;
 }
 
+// Sortable header component
+function SortableTableHead({
+    col,
+    sortConfig,
+    sortIndex,
+    onSortClick,
+}: {
+    col: { id: string; label: string };
+    sortConfig?: { columnId: string; direction: "asc" | "desc" };
+    sortIndex: number | null;
+    onSortClick: () => void;
+}) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: col.id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+        <TableHead
+            ref={setNodeRef}
+            style={style}
+            className="text-sm font-medium text-[#262b2b] whitespace-nowrap min-w-[150px] px-4 py-4 cursor-pointer select-none hover:bg-[#e5e7e7] transition-colors"
+            onClick={onSortClick}
+        >
+            <div className="flex items-center gap-2">
+                <button
+                    {...attributes}
+                    {...listeners}
+                    className="cursor-grab active:cursor-grabbing touch-none"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <GripVertical className="h-4 w-4 text-muted-foreground" />
+                </button>
+                <span>{col.label}</span>
+                {sortConfig && (
+                    <span className="flex items-center gap-1 text-xs text-[#6b7280]">
+                        {sortIndex && sortIndex > 1 && (
+                            <span className="text-[#9ca3af]">{sortIndex}</span>
+                        )}
+                        <span>
+                            {sortConfig.direction === "asc" ? "↑" : "↓"}
+                        </span>
+                    </span>
+                )}
+            </div>
+        </TableHead>
+    );
+}
+
 export function ReportTable() {
-    const { visibleColumns } = useColumns();
+    const { visibleColumns, reorderColumns } = useColumns();
     const { filters } = useFilters();
     const { sorts, toggleSort } = useSort();
+
+    const sensors = useSensors(
+        useSensor(PointerSensor),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
 
     // Filter employees based on active filters
     const filteredEmployees = useMemo(() => {
@@ -122,71 +205,82 @@ export function ReportTable() {
         return visibleColumns.length * 150; // 150px per column minimum
     }, [visibleColumns.length]);
 
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+
+        if (over && active.id !== over.id) {
+            const oldIndex = visibleColumns.findIndex(
+                (col) => col.id === active.id
+            );
+            const newIndex = visibleColumns.findIndex(
+                (col) => col.id === over.id
+            );
+
+            reorderColumns(oldIndex, newIndex);
+        }
+    };
+
     return (
         <div className="bg-white h-full w-full flex flex-col overflow-hidden overflow-x-scroll">
-            <table
-                className="caption-bottom text-sm w-full"
-                style={{ minWidth: `${minTableWidth}px` }}
+            <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
             >
-                <TableHeader className="sticky top-0 z-10 bg-[#f1f2f3]">
-                    <TableRow className="hover:bg-transparent border-b border-[#d9dede]">
-                        {visibleColumns.map((col) => {
-                            const sortConfig = sorts.find(
-                                (s) => s.columnId === col.id
-                            );
-                            const sortIndex =
-                                sortConfig !== undefined
-                                    ? sorts.indexOf(sortConfig) + 1
-                                    : null;
+                <table
+                    className="caption-bottom text-sm w-full"
+                    style={{ minWidth: `${minTableWidth}px` }}
+                >
+                    <TableHeader className="sticky top-0 z-10 bg-[#f1f2f3]">
+                        <TableRow className="hover:bg-transparent border-b border-[#d9dede]">
+                            <SortableContext
+                                items={visibleColumns.map((col) => col.id)}
+                                strategy={horizontalListSortingStrategy}
+                            >
+                                {visibleColumns.map((col) => {
+                                    const sortConfig = sorts.find(
+                                        (s) => s.columnId === col.id
+                                    );
+                                    const sortIndex =
+                                        sortConfig !== undefined
+                                            ? sorts.indexOf(sortConfig) + 1
+                                            : null;
 
-                            return (
-                                <TableHead
-                                    key={col.id}
-                                    className="text-sm font-medium text-[#262b2b] whitespace-nowrap min-w-[150px] px-4 py-4 cursor-pointer select-none hover:bg-[#e5e7e7] transition-colors"
-                                    onClick={() => toggleSort(col.id)}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <span>{col.label}</span>
-                                        {sortConfig && (
-                                            <span className="flex items-center gap-1 text-xs text-[#6b7280]">
-                                                {sortIndex && sortIndex > 1 && (
-                                                    <span className="text-[#9ca3af]">
-                                                        {sortIndex}
-                                                    </span>
-                                                )}
-                                                <span>
-                                                    {sortConfig.direction ===
-                                                    "asc"
-                                                        ? "↑"
-                                                        : "↓"}
-                                                </span>
-                                            </span>
-                                        )}
-                                    </div>
-                                </TableHead>
-                            );
-                        })}
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {tableRows.map((row, rowIndex) => (
-                        <TableRow
-                            key={rowIndex}
-                            className="border-b border-[#d9dede] hover:bg-[#f1f2f3] transition-colors"
-                        >
-                            {row.map((cell, cellIndex) => (
-                                <TableCell
-                                    key={cellIndex}
-                                    className="text-sm text-[#262b2b] whitespace-nowrap px-4 py-4"
-                                    title={cell}
-                                >
-                                    {cell}
-                                </TableCell>
-                            ))}
+                                    return (
+                                        <SortableTableHead
+                                            key={col.id}
+                                            col={col}
+                                            sortConfig={sortConfig}
+                                            sortIndex={sortIndex}
+                                            onSortClick={() =>
+                                                toggleSort(col.id)
+                                            }
+                                        />
+                                    );
+                                })}
+                            </SortableContext>
                         </TableRow>
-                    ))}
-                </TableBody>
-            </table>
+                    </TableHeader>
+                    <TableBody>
+                        {tableRows.map((row, rowIndex) => (
+                            <TableRow
+                                key={rowIndex}
+                                className="border-b border-[#d9dede] hover:bg-[#f1f2f3] transition-colors"
+                            >
+                                {row.map((cell, cellIndex) => (
+                                    <TableCell
+                                        key={cellIndex}
+                                        className="text-sm text-[#262b2b] whitespace-nowrap px-4 py-4"
+                                        title={cell}
+                                    >
+                                        {cell}
+                                    </TableCell>
+                                ))}
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </table>
+            </DndContext>
         </div>
     );
 }

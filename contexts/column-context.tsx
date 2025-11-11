@@ -18,6 +18,7 @@ interface ColumnContextType {
     setSelectedColumns: (columns: Record<string, boolean>) => void;
     toggleColumn: (columnId: string, checked: boolean) => void;
     visibleColumns: Column[];
+    reorderColumns: (startIndex: number, endIndex: number) => void;
 }
 
 const ColumnContext = createContext<ColumnContextType | undefined>(undefined);
@@ -119,6 +120,9 @@ export function ColumnProvider({ children }: { children: ReactNode }) {
 
     // Track the order in which columns were added (for non-default columns)
     const [columnAddOrder, setColumnAddOrder] = useState<string[]>([]);
+    
+    // Track the custom order of visible columns (for drag and drop reordering)
+    const [columnOrder, setColumnOrder] = useState<string[] | null>(null);
 
     const toggleColumn = (columnId: string, checked: boolean) => {
         setSelectedColumns((prev) => {
@@ -171,11 +175,74 @@ export function ColumnProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    // Reorder columns function for drag and drop
+    const reorderColumns = (startIndex: number, endIndex: number) => {
+        setColumnOrder((prevOrder) => {
+            // If we don't have a custom order yet, we need to compute the current order
+            if (!prevOrder) {
+                const visible: Column[] = [];
+                const addedColumns = new Set<string>();
+
+                // First, add default columns in their original order
+                DEFAULT_VISIBLE_COLUMNS.forEach((columnId) => {
+                    const col = allColumns.find((c) => c.id === columnId);
+                    if (col) {
+                        addColumnWithDependents(col, visible, addedColumns, selectedColumns);
+                    }
+                });
+
+                // Then, add non-default columns in the order they were added
+                columnAddOrder.forEach((columnId) => {
+                    const col = allColumns.find((c) => c.id === columnId);
+                    if (col) {
+                        addColumnWithDependents(col, visible, addedColumns, selectedColumns);
+                    }
+                });
+
+                const currentVisible = visible.map((col) => col.id);
+                const result = Array.from(currentVisible);
+                const [removed] = result.splice(startIndex, 1);
+                result.splice(endIndex, 0, removed);
+                return result;
+            }
+            
+            // If we have a custom order, use it
+            const result = Array.from(prevOrder);
+            const [removed] = result.splice(startIndex, 1);
+            result.splice(endIndex, 0, removed);
+            return result;
+        });
+    };
+
     // Get visible columns, including dependent columns if their parent is visible
     const visibleColumns = useMemo(() => {
         const visible: Column[] = [];
         const addedColumns = new Set<string>();
 
+        // If we have a custom order, use it
+        if (columnOrder && columnOrder.length > 0) {
+            columnOrder.forEach((columnId) => {
+                const col = allColumns.find((c) => c.id === columnId);
+                if (col && (selectedColumns[col.id] ?? false)) {
+                    addColumnWithDependents(col, visible, addedColumns, selectedColumns);
+                }
+            });
+            
+            // Add any newly selected columns that aren't in the order yet
+            allColumns.forEach((col) => {
+                if (
+                    (selectedColumns[col.id] ?? false) &&
+                    !addedColumns.has(col.id) &&
+                    !col.isDependentOf
+                ) {
+                    addColumnWithDependents(col, visible, addedColumns, selectedColumns);
+                }
+            });
+            
+            return visible;
+        }
+
+        // Otherwise, use the default logic
         // First, add default columns in their original order
         DEFAULT_VISIBLE_COLUMNS.forEach((columnId) => {
             const col = allColumns.find((c) => c.id === columnId);
@@ -193,7 +260,7 @@ export function ColumnProvider({ children }: { children: ReactNode }) {
         });
 
         return visible;
-    }, [allColumns, selectedColumns, columnAddOrder]);
+    }, [allColumns, selectedColumns, columnAddOrder, columnOrder]);
 
     return (
         <ColumnContext.Provider
@@ -203,6 +270,7 @@ export function ColumnProvider({ children }: { children: ReactNode }) {
                 setSelectedColumns,
                 toggleColumn,
                 visibleColumns,
+                reorderColumns,
             }}
         >
             {children}
