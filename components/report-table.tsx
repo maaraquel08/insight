@@ -1,7 +1,7 @@
 "use client";
 
 import { employees } from "@/app/data/sampleData";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useColumns } from "@/contexts/column-context";
 import { useFilters } from "@/contexts/filter-context";
 import { useSort } from "@/contexts/sort-context";
@@ -103,6 +103,13 @@ function SortableTableHead({
     sortIndex: number | null;
     onSortClick: () => void;
 }) {
+    const [isMounted, setIsMounted] = useState(false);
+
+    // Only enable sortable on client to avoid hydration mismatch
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
     const {
         attributes,
         listeners,
@@ -110,7 +117,7 @@ function SortableTableHead({
         transform,
         transition,
         isDragging,
-    } = useSortable({ id: col.id });
+    } = useSortable({ id: col.id, disabled: !isMounted });
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -126,14 +133,21 @@ function SortableTableHead({
             onClick={onSortClick}
         >
             <div className="flex items-center gap-2">
-                <button
-                    {...attributes}
-                    {...listeners}
-                    className="cursor-grab active:cursor-grabbing touch-none"
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <GripVertical className="h-4 w-4 text-muted-foreground" />
-                </button>
+                {isMounted && (
+                    <button
+                        {...attributes}
+                        {...listeners}
+                        className="cursor-grab active:cursor-grabbing touch-none"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <GripVertical className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                )}
+                {!isMounted && (
+                    <div className="w-4 h-4 flex items-center justify-center">
+                        <GripVertical className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                )}
                 <span>{col.label}</span>
                 {sortConfig && (
                     <span className="flex items-center gap-1 text-xs text-[#6b7280]">
