@@ -1,0 +1,102 @@
+# Development Rules
+
+## React Hooks Rules
+
+### Always Call Hooks Before Early Returns
+
+**Rule:** All hooks (`useState`, `useEffect`, `useMemo`, `useCallback`) must be called before any conditional returns.
+
+**Correct:**
+
+```typescript
+function Component() {
+    const [data, setData] = useState(null);
+    useEffect(() => {
+        setData(getData());
+    }, []);
+    const memoized = useMemo(() => compute(data), [data]);
+
+    if (!data) return <Loading />; // ✅ Early return AFTER all hooks
+    return <Content />;
+}
+```
+
+**Wrong:**
+
+```typescript
+function Component() {
+    const [data, setData] = useState(null);
+    if (!data) return <Loading />; // ❌ Early return before hooks
+    const memoized = useMemo(() => compute(data), [data]); // ❌ Violates Rules of Hooks
+}
+```
+
+## Next.js Hydration Rules
+
+### Load Random/Variable Data Only on Client
+
+**Rule:** Functions using `Math.random()`, `Date.now()`, or browser APIs must be called in `useEffect`, not during render.
+
+**Correct:**
+
+```typescript
+"use client";
+
+function Component() {
+    const [data, setData] = useState(null);
+
+    useEffect(() => {
+        setData(getDataWithRandom()); // ✅ Only runs on client
+    }, []);
+
+    if (!data) return <Loading />;
+    return <Content data={data} />;
+}
+```
+
+**Wrong:**
+
+```typescript
+function Component() {
+    const data = getDataWithRandom(); // ❌ Different values on server vs client
+    return <Content data={data} />;
+}
+```
+
+### Use Dynamic Imports for Client-Only Libraries
+
+**Rule:** Libraries that use browser APIs (like ApexCharts) must use `dynamic` import with `ssr: false`.
+
+**Correct:**
+
+```typescript
+import dynamic from "next/dynamic";
+const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
+
+function Component() {
+    return <Chart options={options} series={series} />; // ✅ No typeof window check needed
+}
+```
+
+## Null-Safe Access in Hooks
+
+**Rule:** When using `useMemo` with nullable data, always use optional chaining and provide fallbacks.
+
+**Correct:**
+
+```typescript
+const options = useMemo(
+    () => ({
+        categories: data?.labels || [],
+    }),
+    [data]
+);
+```
+
+## Quick Checklist
+
+-   ✅ All hooks called at top of component
+-   ✅ Early returns only after all hooks
+-   ✅ Random/variable data loaded in `useEffect`
+-   ✅ Client-only libraries use `dynamic` import
+-   ✅ Null-safe access in `useMemo` hooks
