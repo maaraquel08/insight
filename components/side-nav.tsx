@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Home, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -33,10 +34,13 @@ export function SideNav() {
       <div className="flex flex-col items-center justify-center py-4 px-3">
         <div className="w-9 h-9 flex items-center justify-center">
           <div className="bg-[#00291b] flex items-center justify-center rounded-2xl w-6 h-6 overflow-hidden">
-            <img
+            <Image
               src={imgLogo}
               alt="Logo"
+              width={24}
+              height={24}
               className="w-full h-full object-contain"
+              unoptimized
             />
           </div>
         </div>
@@ -55,10 +59,13 @@ export function SideNav() {
       <div className="border-t border-[#d9dede] p-3">
         <div className="flex items-center justify-center">
           <div className="relative w-9 h-9">
-            <img
+            <Image
               src={imgAvatar}
               alt="Avatar"
+              width={36}
+              height={36}
               className="w-9 h-9 rounded-full object-cover"
+              unoptimized
             />
             <div className="absolute -right-0.5 top-5 w-2.5 h-2.5 bg-[#158039] border-[0.5px] border-[#f1f2f3] rounded-full" />
           </div>

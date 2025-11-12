@@ -16,7 +16,7 @@ export function PeopleHealthSection() {
                     </h2>
                     <p className="text-sm text-[#5d6c6b] leading-5">
                         Understand the overall state of your workforce — how your headcount,
-                        retention, and attendance are shaping your company's people health.
+                        retention, and attendance are shaping your company&apos;s people health.
                     </p>
                 </div>
             </div>

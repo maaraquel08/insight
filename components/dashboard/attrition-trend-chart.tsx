@@ -19,7 +19,7 @@ export function AttritionTrendChart() {
     const [data, setData] = useState<AttritionTrendData | null>(null);
 
     useEffect(() => {
-        const trendData = getAttritionTrendData();
+        const trendData = getAttritionTrendData() as any;
         setData({
             labels: trendData.labels,
             series: trendData.series,
