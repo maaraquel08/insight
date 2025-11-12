@@ -7,7 +7,7 @@ import { LeaveAbsenteeism } from "./leave-absenteeism";
 
 export function PeopleHealthSection() {
     return (
-        <div className="bg-white rounded-2xl border border-[#d9dede] w-full">
+        <div className="bg-white rounded-xl border border-[#d9dede] w-full">
             {/* Card Header */}
             <div className="border-b border-[#d9dede] px-4 py-3">
                 <div className="flex flex-col gap-2">

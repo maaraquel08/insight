@@ -6,7 +6,6 @@ import { Users } from "lucide-react";
 import type { ApexOptions } from "apexcharts";
 // @ts-ignore - JavaScript file
 import { getTenureDemographicsData } from "@/app/data/peopleHealthData";
-import { MetricCard } from "./metric-card";
 import {
     Select,
     SelectContent,
@@ -318,7 +317,7 @@ export function TenureDemographics() {
 
     if (!demographicsData) {
         return (
-            <div className="w-full bg-white border border-[#d9dede] rounded-2xl overflow-hidden">
+            <div className="w-full bg-white border border-[#d9dede] rounded-xl overflow-hidden">
                 <div className="px-4 py-3 border-b border-[#d9dede]">
                     <div className="flex gap-1 items-center mb-1">
                         <Users className="w-5 h-5 text-[#738482]" />
@@ -388,7 +387,7 @@ export function TenureDemographics() {
         "Distribution";
 
     return (
-        <div className="w-full bg-white border border-[#d9dede] rounded-2xl overflow-hidden">
+        <div className="w-full bg-white border border-[#d9dede] rounded-xl overflow-hidden">
             {/* Card Header */}
             <div className="px-4 py-3 border-b border-[#d9dede]">
                 <div className="flex gap-1 items-center mb-1">
@@ -405,18 +404,6 @@ export function TenureDemographics() {
 
             {/* Card Body */}
             <div className="p-6">
-                {/* Average Tenure Summary */}
-                <div className="mb-6">
-                    <MetricCard
-                        icon={<Users className="w-5 h-5 text-[#738482]" />}
-                        title="Average Tenure"
-                        value={`${demographicsData.averageTenure} years`}
-                        change={`${demographicsData.tenureChangeSymbol} ${demographicsData.tenureChange}% vs last period`}
-                        changeType={demographicsData.tenureChangeType}
-                        description={demographicsData.tenureDescription}
-                    />
-                </div>
-
                 {/* Dropdown Selector */}
                 <div className="mb-6">
                     <Select
@@ -445,10 +432,7 @@ export function TenureDemographics() {
                 </div>
 
                 {/* Dynamic Chart Display */}
-                <div className="mb-6">
-                    <h3 className="text-sm font-medium text-[#262b2b] mb-3">
-                        {chartTitle}
-                    </h3>
+                <div className="mb-6 w-full">
                     <Chart
                         type={chartConfig.type}
                         options={chartConfig.options}

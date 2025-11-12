@@ -23,7 +23,7 @@ export function MetricCard({
     const displayIcon = icon || defaultIcon;
 
     return (
-        <div className="bg-white rounded-lg border border-[#d9dede] p-4">
+        <div className="bg-white rounded-xl border border-[#d9dede] p-4">
             <div className="flex flex-col gap-4">
                 <div className="flex items-center gap-2">
                     {displayIcon}

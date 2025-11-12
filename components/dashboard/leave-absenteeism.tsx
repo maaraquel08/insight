@@ -174,7 +174,7 @@ export function LeaveAbsenteeism() {
 
     if (!data) {
         return (
-            <div className="bg-white border border-[#d9dede] rounded-2xl overflow-hidden">
+            <div className="bg-white border border-[#d9dede] rounded-xl overflow-hidden">
                 <div className="px-4 py-3 border-b border-[#d9dede]">
                     <div className="flex gap-1 items-center mb-1">
                         <Clock className="w-5 h-5 text-[#738482]" />
@@ -197,7 +197,7 @@ export function LeaveAbsenteeism() {
     }
 
     return (
-        <div className="bg-white border border-[#d9dede] rounded-2xl overflow-hidden">
+        <div className="bg-white border border-[#d9dede] rounded-xl overflow-hidden">
             {/* Card Header */}
             <div className="px-4 py-3 border-b border-[#d9dede]">
                 <div className="flex gap-1 items-center mb-1">
@@ -234,7 +234,7 @@ export function LeaveAbsenteeism() {
                     </div>
 
                     {/* Leave Types Stacked Bar Chart */}
-                    <div className="bg-white rounded-lg border border-[#d9dede] p-4">
+                    <div className="bg-white rounded-xl border border-[#d9dede] p-4">
                         <h3 className="text-sm font-medium text-[#262b2b] mb-3">
                             Leave Types Breakdown
                         </h3>
@@ -247,7 +247,7 @@ export function LeaveAbsenteeism() {
                     </div>
 
                     {/* Absenteeism Trend Line Chart */}
-                    <div className="bg-white rounded-lg border border-[#d9dede] p-4">
+                    <div className="bg-white rounded-xl border border-[#d9dede] p-4">
                         <h3 className="text-sm font-medium text-[#262b2b] mb-3">
                             Absenteeism Trend
                         </h3>
