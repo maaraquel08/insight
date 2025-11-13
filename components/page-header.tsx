@@ -9,6 +9,8 @@ interface PageHeaderProps {
     description: string;
     actionLabel?: string;
     onAction?: () => void;
+    personalizeLabel?: string;
+    onPersonalize?: () => void;
 }
 
 export function PageHeader({
@@ -16,6 +18,8 @@ export function PageHeader({
     description,
     actionLabel = "Create Report",
     onAction,
+    personalizeLabel = "Personalize",
+    onPersonalize,
 }: PageHeaderProps) {
     const router = useRouter();
     const pathname = usePathname();
@@ -47,17 +51,30 @@ export function PageHeader({
                     </p>
                 </div>
             </div>
-            {actionLabel && onAction && (
+            {(actionLabel && onAction) ||
+            (personalizeLabel && onPersonalize) ? (
                 <div className="flex items-center justify-end gap-2">
-                    <Button
-                        onClick={onAction}
-                        className="bg-[#158039] hover:bg-[#158039]/90 text-white h-9 min-w-[56px] px-2 py-3 rounded-lg"
-                        size="sm"
-                    >
-                        {actionLabel}
-                    </Button>
+                    {personalizeLabel && onPersonalize && (
+                        <Button
+                            onClick={onPersonalize}
+                            variant="outline"
+                            className="h-9 min-w-[56px] px-2 py-3 rounded-lg border-[#b8c1c0] text-[#262b2b] hover:bg-[#f1f2f3]"
+                            size="sm"
+                        >
+                            {personalizeLabel}
+                        </Button>
+                    )}
+                    {actionLabel && onAction && (
+                        <Button
+                            onClick={onAction}
+                            className="bg-[#158039] hover:bg-[#158039]/90 text-white h-9 min-w-[56px] px-2 py-3 rounded-lg"
+                            size="sm"
+                        >
+                            {actionLabel}
+                        </Button>
+                    )}
                 </div>
-            )}
+            ) : null}
         </div>
     );
 }
