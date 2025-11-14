@@ -1,7 +1,7 @@
 "use client";
 
 import { employees } from "@/app/data/sampleData";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useColumns } from "@/contexts/column-context";
 import { useFilters } from "@/contexts/filter-context";
 import { useSort } from "@/contexts/sort-context";
@@ -29,7 +29,19 @@ import {
     useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical } from "lucide-react";
+import { GripVertical, Calculator, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+    computeColumnStatistics,
+    getComputationOptions,
+    computeValue,
+} from "@/lib/compute-statistics";
+import { useComputedValues } from "@/contexts/computed-values-context";
 
 // Helper function to format cell value
 function formatCellValue(value: unknown): string {
@@ -91,6 +103,186 @@ function compareValues(
     return 0;
 }
 
+// Compute cell component for footer row
+function ComputeCell({
+    columnId,
+    columnLabel,
+    data,
+}: {
+    columnId: string;
+    columnLabel: string;
+    data: Record<string, unknown>[];
+}) {
+    const { setComputedValue, getComputedValue } = useComputedValues();
+    const [isMounted, setIsMounted] = useState(false);
+    const [computeOpen, setComputeOpen] = useState(false);
+    const [selectedComputation, setSelectedComputation] = useState<
+        string | null
+    >(null);
+    const [isHovered, setIsHovered] = useState(false);
+    const hasRestoredRef = useRef(false);
+
+    // Get computed value from context
+    const storedComputed = getComputedValue(columnId);
+    const computedValue = storedComputed?.value ?? null;
+    const hasComputedValue = computedValue !== null;
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+    // Restore selectedComputation from context when it becomes available (only once)
+    useEffect(() => {
+        if (storedComputed && !selectedComputation && !hasRestoredRef.current) {
+            setSelectedComputation(storedComputed.computationType);
+            hasRestoredRef.current = true;
+        }
+    }, [storedComputed, selectedComputation]);
+
+    // Detect column type
+    const columnType = useMemo(() => {
+        if (!isMounted) return "string";
+        const values = data.map((row) => row[columnId]);
+        const stats = computeColumnStatistics(columnId, data);
+        return stats.type;
+    }, [columnId, data, isMounted]);
+
+    // Get computation options
+    const options = useMemo(() => {
+        return getComputationOptions(columnType);
+    }, [columnType]);
+
+    // Compute value when selection changes or data changes
+    useEffect(() => {
+        if (selectedComputation && isMounted) {
+            const value = computeValue(columnId, data, selectedComputation);
+            setComputedValue(columnId, {
+                columnId,
+                value,
+                computationType: selectedComputation,
+            });
+        }
+    }, [selectedComputation, columnId, isMounted, data, setComputedValue]);
+
+    if (!isMounted) {
+        return (
+            <TableCell className="text-sm text-[#262b2b] whitespace-nowrap px-4 py-4 h-12">
+                <div className="h-6" />
+            </TableCell>
+        );
+    }
+
+    return (
+        <TableCell
+            className="text-sm text-[#262b2b] whitespace-nowrap px-4 py-4 h-12 relative"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
+            {isHovered && !hasComputedValue && (
+                <Popover open={computeOpen} onOpenChange={setComputeOpen}>
+                    <PopoverTrigger asChild>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-full min-h-12 gap-1.5 text-left justify-start"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setComputeOpen(true);
+                            }}
+                        >
+                            <Calculator className="h-3.5 w-3.5" />
+                            <span className="text-xs">Calculate</span>
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                        className="w-72 p-2"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="space-y-1">
+                            {options.map((option) => (
+                                <button
+                                    key={option.value}
+                                    onClick={() => {
+                                        setSelectedComputation(option.value);
+                                        setComputeOpen(false);
+                                    }}
+                                    className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
+                                        selectedComputation === option.value ||
+                                        storedComputed?.computationType ===
+                                            option.value
+                                            ? "bg-primary text-primary-foreground"
+                                            : "hover:bg-accent hover:text-accent-foreground"
+                                    }`}
+                                >
+                                    {option.label}
+                                </button>
+                            ))}
+                        </div>
+                    </PopoverContent>
+                </Popover>
+            )}
+            {hasComputedValue && (
+                <div className="flex items-center gap-2 h-full">
+                    <Popover open={computeOpen} onOpenChange={setComputeOpen}>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="outline"
+                                className="flex-1 text-sm font-medium hover:bg-accent text-left justify-start py-1.5 px-1"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setComputeOpen(true);
+                                }}
+                            >
+                                {String(computedValue)}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                            className="w-72 p-2"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="space-y-1">
+                                {options.map((option) => (
+                                    <button
+                                        key={option.value}
+                                        onClick={() => {
+                                            setSelectedComputation(
+                                                option.value
+                                            );
+                                            setComputeOpen(false);
+                                        }}
+                                        className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
+                                            selectedComputation ===
+                                                option.value ||
+                                            storedComputed?.computationType ===
+                                                option.value
+                                                ? "bg-primary text-primary-foreground"
+                                                : "hover:bg-accent hover:text-accent-foreground"
+                                        }`}
+                                    >
+                                        {option.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </PopoverContent>
+                    </Popover>
+                    <button
+                        type="button"
+                        className="h-10 w-10 flex items-center justify-center rounded-md border border-input bg-background hover:bg-red-50 text-red-500 hover:text-red-600 transition-colors"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setComputedValue(columnId, null);
+                            setSelectedComputation(null);
+                        }}
+                        title="Clear result"
+                    >
+                        <X className="h-4 w-4" />
+                    </button>
+                </div>
+            )}
+        </TableCell>
+    );
+}
+
 // Sortable header component
 function SortableTableHead({
     col,
@@ -129,7 +321,7 @@ function SortableTableHead({
         <TableHead
             ref={setNodeRef}
             style={style}
-            className="text-sm font-medium text-[#262b2b] whitespace-nowrap min-w-[150px] px-4 py-4 cursor-pointer select-none hover:bg-[#e5e7e7] transition-colors"
+            className="text-sm font-medium text-[#262b2b] whitespace-nowrap min-w-[150px] px-4 py-4 cursor-pointer select-none hover:bg-[#e5e7e7] transition-colors group/header"
             onClick={onSortClick}
         >
             <div className="flex items-center gap-2">
@@ -148,7 +340,7 @@ function SortableTableHead({
                         <GripVertical className="h-4 w-4 text-muted-foreground" />
                     </div>
                 )}
-                <span>{col.label}</span>
+                <span className="flex-1">{col.label}</span>
                 {sortConfig && (
                     <span className="flex items-center gap-1 text-xs text-[#6b7280]">
                         {sortIndex && sortIndex > 1 && (
@@ -246,7 +438,7 @@ export function ReportTable() {
                     style={{ minWidth: `${minTableWidth}px` }}
                 >
                     <TableHeader className="sticky top-0 z-10 bg-[#f1f2f3]">
-                        <TableRow className="hover:bg-transparent border-b border-[#d9dede]">
+                        <TableRow className="hover:bg-transparent border-b border-[#d9dede] group">
                             <SortableContext
                                 items={visibleColumns.map((col) => col.id)}
                                 strategy={horizontalListSortingStrategy}
@@ -292,6 +484,16 @@ export function ReportTable() {
                                 ))}
                             </TableRow>
                         ))}
+                        <TableRow className="border-t-2 border-[#d9dede]">
+                            {visibleColumns.map((col) => (
+                                <ComputeCell
+                                    key={col.id}
+                                    columnId={col.id}
+                                    columnLabel={col.label}
+                                    data={sortedEmployees}
+                                />
+                            ))}
+                        </TableRow>
                     </TableBody>
                 </table>
             </DndContext>

@@ -19,12 +19,18 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, X, ChevronDown } from "lucide-react";
+import { Plus, X, ChevronDown, FileDown } from "lucide-react";
 import {
     Popover,
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ChipsFilter } from "@/components/ui/chips-filter";
 import { useFilters } from "@/contexts/filter-context";
 import type { Filter as FilterType } from "@/components/ui/filters";
@@ -39,6 +45,12 @@ import { AttributeSelection } from "./attribute-selection";
 import { OperatorSelection } from "./operator-selection";
 import { ValueSelection } from "./value-selection";
 import { FilterActions } from "./filter-actions";
+import { useTableData } from "@/hooks/use-table-data";
+import {
+    downloadAsCSV,
+    downloadAsXLSX,
+    downloadAsPDF,
+} from "@/lib/download-utils";
 
 export function FilterBar() {
     // ========================================================================
@@ -47,6 +59,7 @@ export function FilterBar() {
 
     const { filters, setFilters } = useFilters();
     const allColumns = getAvailableColumns();
+    const tableData = useTableData();
 
     // Popover state
     const [addFilterPopoverOpen, setAddFilterPopoverOpen] = useState(false);
@@ -318,6 +331,24 @@ export function FilterBar() {
         setFilters([]);
     }
 
+    /**
+     * Handle download actions
+     */
+    function handleDownload(format: "csv" | "xlsx" | "pdf") {
+        const filename = `report-${new Date().toISOString().split("T")[0]}`;
+        switch (format) {
+            case "csv":
+                downloadAsCSV(tableData, filename);
+                break;
+            case "xlsx":
+                downloadAsXLSX(tableData, filename);
+                break;
+            case "pdf":
+                downloadAsPDF(tableData, filename);
+                break;
+        }
+    }
+
     // ========================================================================
     // NAVIGATION HANDLERS
     // ========================================================================
@@ -451,13 +482,40 @@ export function FilterBar() {
                 >
                     Share
                 </Button>
-                <Button
-                    className="bg-[#158039] hover:bg-[#158039]/90 text-white h-9 px-2 text-xs font-medium"
-                    size="sm"
-                >
-                    Download
-                    <ChevronDown className="w-3 h-3 ml-1" />
-                </Button>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            className="bg-[#158039] hover:bg-[#158039]/90 text-white h-9 px-2 text-xs font-medium"
+                            size="sm"
+                        >
+                            Download
+                            <ChevronDown className="w-3 h-3 ml-1" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40">
+                        <DropdownMenuItem
+                            onClick={() => handleDownload("csv")}
+                            className="cursor-pointer"
+                        >
+                            <FileDown className="w-4 h-4 mr-2" />
+                            CSV
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onClick={() => handleDownload("xlsx")}
+                            className="cursor-pointer"
+                        >
+                            <FileDown className="w-4 h-4 mr-2" />
+                            Excel
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onClick={() => handleDownload("pdf")}
+                            className="cursor-pointer"
+                        >
+                            <FileDown className="w-4 h-4 mr-2" />
+                            PDF
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
         </div>
     );
