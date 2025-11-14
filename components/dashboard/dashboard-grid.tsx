@@ -54,9 +54,7 @@ function SortableWidget({ layout }: SortableWidgetProps) {
         <div
             ref={setNodeRef}
             style={style}
-            className={`h-auto ${
-                isDragging ? "z-50" : ""
-            }`}
+            className={`h-auto ${isDragging ? "z-50" : ""}`}
         >
             <WidgetWrapper
                 layout={layout}
@@ -68,7 +66,7 @@ function SortableWidget({ layout }: SortableWidgetProps) {
                 ) : (
                     <div className="bg-white rounded-xl border border-[#d9dede] p-8">
                         <p className="text-sm text-[#5d6c6b]">
-                            Widget "{layout.widgetId}" not found
+                            Widget &quot;{layout.widgetId}&quot; not found
                         </p>
                     </div>
                 )}
@@ -108,7 +106,7 @@ export function DashboardGrid() {
     const getWidgetWidth = (): { style: CSSProperties } => {
         // For 2-column: calc(50% - gap/2) ensures uniform gaps
         return {
-            style: { width: `calc(50% - ${gapValue / 2}rem)` }
+            style: { width: `calc(50% - ${gapValue / 2}rem)` },
         };
     };
 
@@ -125,9 +123,7 @@ export function DashboardGrid() {
             return;
         }
 
-        const oldIndex = sortedWidgets.findIndex(
-            (w) => w.id === active.id
-        );
+        const oldIndex = sortedWidgets.findIndex((w) => w.id === active.id);
         const newIndex = sortedWidgets.findIndex((w) => w.id === over.id);
 
         if (oldIndex !== -1 && newIndex !== -1) {
@@ -150,9 +146,9 @@ export function DashboardGrid() {
                     const WidgetComponent = getWidgetComponent(layout.widgetId);
                     const widthProps = getWidgetWidth();
                     return (
-                        <div 
-                            key={layout.id} 
-                            style={{ ...widthProps.style, height: 'auto' }}
+                        <div
+                            key={layout.id}
+                            style={{ ...widthProps.style, height: "auto" }}
                         >
                             <WidgetWrapper layout={layout}>
                                 {WidgetComponent ? (
@@ -160,7 +156,8 @@ export function DashboardGrid() {
                                 ) : (
                                     <div className="bg-white rounded-xl border border-[#d9dede] p-8">
                                         <p className="text-sm text-[#5d6c6b]">
-                                            Widget "{layout.widgetId}" not found
+                                            Widget &quot;{layout.widgetId}&quot;
+                                            not found
                                         </p>
                                     </div>
                                 )}
@@ -180,7 +177,9 @@ export function DashboardGrid() {
             onDragEnd={handleDragEnd}
         >
             {/* Flexbox masonry layout: uniform gaps, content-based heights, natural flow */}
-            <div className={`flex flex-wrap ${gapClass} items-start min-h-[400px]`}>
+            <div
+                className={`flex flex-wrap ${gapClass} items-start min-h-[400px]`}
+            >
                 <SortableContext
                     items={sortedWidgets.map((w) => w.id)}
                     strategy={rectSortingStrategy}
@@ -188,9 +187,9 @@ export function DashboardGrid() {
                     {sortedWidgets.map((layout) => {
                         const widthProps = getWidgetWidth();
                         return (
-                            <div 
-                                key={layout.id} 
-                                style={{ ...widthProps.style, height: 'auto' }}
+                            <div
+                                key={layout.id}
+                                style={{ ...widthProps.style, height: "auto" }}
                             >
                                 <SortableWidget layout={layout} />
                             </div>
@@ -199,39 +198,40 @@ export function DashboardGrid() {
                 </SortableContext>
             </div>
             <DragOverlay>
-                {activeId ? (
-                    (() => {
-                        const activeWidget = sortedWidgets.find(
-                            (w) => w.id === activeId
-                        );
-                        if (!activeWidget) return null;
+                {activeId
+                    ? (() => {
+                          const activeWidget = sortedWidgets.find(
+                              (w) => w.id === activeId
+                          );
+                          if (!activeWidget) return null;
 
-                        const WidgetComponent = getWidgetComponent(
-                            activeWidget.widgetId
-                        );
-                        const widthProps = getWidgetWidth();
+                          const WidgetComponent = getWidgetComponent(
+                              activeWidget.widgetId
+                          );
+                          const widthProps = getWidgetWidth();
 
-                        return (
-                            <div 
-                                style={{ ...widthProps.style, opacity: 0.9 }}
-                            >
-                                <div className="bg-white rounded-xl border-2 border-[#158039] shadow-lg">
-                                    {WidgetComponent ? (
-                                        <WidgetComponent />
-                                    ) : (
-                                        <div className="p-8">
-                                            <p className="text-sm text-[#5d6c6b]">
-                                                Widget "{activeWidget.widgetId}" not found
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        );
-                    })()
-                ) : null}
+                          return (
+                              <div
+                                  style={{ ...widthProps.style, opacity: 0.9 }}
+                              >
+                                  <div className="bg-white rounded-xl border-2 border-[#158039] shadow-lg">
+                                      {WidgetComponent ? (
+                                          <WidgetComponent />
+                                      ) : (
+                                          <div className="p-8">
+                                              <p className="text-sm text-[#5d6c6b]">
+                                                  Widget &quot;
+                                                  {activeWidget.widgetId}&quot;
+                                                  not found
+                                              </p>
+                                          </div>
+                                      )}
+                                  </div>
+                              </div>
+                          );
+                      })()
+                    : null}
             </DragOverlay>
         </DndContext>
     );
 }
-
