@@ -5,6 +5,7 @@ import { DashboardGrid } from "@/components/dashboard/dashboard-grid";
 import { EditModeBanner } from "@/components/dashboard/edit-mode-banner";
 import { PersonalizeHeader } from "@/components/dashboard/personalize-header";
 import { ExecutiveSnapshotSection } from "@/components/dashboard/executive-snapshot-section";
+import { FloatingChatSidekick } from "@/components/chatbot-sidekick";
 
 export default function Home() {
     return (
@@ -28,6 +29,9 @@ export default function Home() {
                         </div>
                     </div>
                 </div>
+                
+                {/* Floating Chat Sidekick */}
+                <FloatingChatSidekick />
             </main>
         </DashboardContainer>
     );

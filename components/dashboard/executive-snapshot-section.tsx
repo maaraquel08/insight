@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { ExecutiveSnapshotCard } from "./executive-snapshot-card";
 import { useDashboard } from "@/contexts/dashboard-context";
+import { useChatSidekick } from "@/components/chatbot-sidekick";
 import { Button } from "@/components/ui/button";
 import {
     DndContext,
@@ -51,9 +52,10 @@ interface CardData {
 interface SortableCardProps {
     card: CardData;
     onRemove: (cardId: string) => void;
+    onAskSidekick: (card: CardData) => void;
 }
 
-function SortableCard({ card, onRemove }: SortableCardProps) {
+function SortableCard({ card, onRemove, onAskSidekick }: SortableCardProps) {
     const { isEditMode } = useDashboard();
     const [isHovered, setIsHovered] = useState(false);
     const {
@@ -98,6 +100,7 @@ function SortableCard({ card, onRemove }: SortableCardProps) {
                 change={card.change}
                 changeType={card.changeType}
                 description={card.description}
+                onAskSidekick={() => onAskSidekick(card)}
             />
 
             {/* Edit Controls */}
@@ -134,11 +137,29 @@ function SortableCard({ card, onRemove }: SortableCardProps) {
 
 export function ExecutiveSnapshotSection() {
     const { isEditMode } = useDashboard();
+    const { openChat } = useChatSidekick();
     const [headcountData, setHeadcountData] = useState<any>(null);
     const [attritionData, setAttritionData] = useState<any>(null);
     const [leaveData, setLeaveData] = useState<any>(null);
     const [cards, setCards] = useState<CardData[]>([]);
     const [activeId, setActiveId] = useState<string | null>(null);
+
+    // Generate a general question based on card data
+    const generateQuestion = (card: CardData): string => {
+        const questions: Record<string, string> = {
+            headcount: `Can you tell me more about the headcount trends? What factors are driving the changes?`,
+            attrition: `What insights can you share about our attrition rate? What are the main contributing factors?`,
+            payroll: `Can you explain the payroll cost trends? What's driving the changes?`,
+            overtime: `What can you tell me about our overtime percentage? What are the key drivers?`,
+        };
+
+        return questions[card.id] || `Can you provide more insights about ${card.title.toLowerCase()}?`;
+    };
+
+    const handleAskSidekick = (card: CardData) => {
+        const question = generateQuestion(card);
+        openChat(question);
+    };
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -259,6 +280,7 @@ export function ExecutiveSnapshotSection() {
                             change={card.change}
                             changeType={card.changeType}
                             description={card.description}
+                            onAskSidekick={() => handleAskSidekick(card)}
                         />
                     </div>
                 ))}
@@ -283,6 +305,7 @@ export function ExecutiveSnapshotSection() {
                             key={card.id}
                             card={card}
                             onRemove={handleRemoveCard}
+                            onAskSidekick={handleAskSidekick}
                         />
                     ))}
                 </SortableContext>
