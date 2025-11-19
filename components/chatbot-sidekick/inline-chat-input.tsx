@@ -1,6 +1,13 @@
 "use client";
 
-import { useRef, useEffect, useState, KeyboardEvent, ClipboardEvent } from "react";
+import {
+    useRef,
+    useEffect,
+    useState,
+    useCallback,
+    KeyboardEvent,
+    ClipboardEvent,
+} from "react";
 import { createRoot, Root } from "react-dom/client";
 import { WidgetChip } from "./widget-chip";
 import type { WidgetLayout } from "@/types/dashboard";
@@ -28,7 +35,12 @@ export function InlineChatInput({
 }: InlineChatInputProps) {
     const editorRef = useRef<HTMLDivElement>(null);
     const [isFocused, setIsFocused] = useState(false);
-    const chipRootsRef = useRef<Map<string, { root: Root; element: HTMLElement }>>(new Map());
+    const chipRootsRef = useRef<
+        Map<string, { root: Root; element: HTMLElement }>
+    >(new Map());
+    const insertChipAtCursorRef = useRef<
+        ((widgetLayout: WidgetLayout) => void) | null
+    >(null);
 
     const getContent = (): { text: string; chips: WidgetLayout[] } => {
         const editor = editorRef.current;
@@ -49,13 +61,15 @@ export function InlineChatInput({
             } else if (node.nodeType === Node.ELEMENT_NODE) {
                 const element = node as HTMLElement;
                 const chipId = element.dataset.chipId;
-                
+
                 if (chipId) {
                     // This is a chip - extract widget layout from stored data
                     const storedLayout = element.dataset.widgetLayout;
                     if (storedLayout) {
                         try {
-                            const widgetLayout = JSON.parse(storedLayout) as WidgetLayout;
+                            const widgetLayout = JSON.parse(
+                                storedLayout
+                            ) as WidgetLayout;
                             chipLayouts.push(widgetLayout);
                             textParts.push(`[WIDGET:${widgetLayout.widgetId}]`);
                         } catch (e) {
@@ -72,7 +86,7 @@ export function InlineChatInput({
         Array.from(editor.childNodes).forEach(traverse);
 
         const fullText = textParts.join("").trim();
-        
+
         return {
             text: fullText,
             chips: chipLayouts,
@@ -82,7 +96,11 @@ export function InlineChatInput({
     // Expose triggerSend method via ref
     useEffect(() => {
         if (sendButtonRef) {
-            (sendButtonRef as React.MutableRefObject<{ triggerSend: () => void }>).current = {
+            (
+                sendButtonRef as React.MutableRefObject<{
+                    triggerSend: () => void;
+                }>
+            ).current = {
                 triggerSend: () => {
                     const content = getContent();
                     if (content.text || content.chips.length > 0) {
@@ -90,10 +108,12 @@ export function InlineChatInput({
                         // Clear editor
                         if (editorRef.current) {
                             // Clean up all chip roots - defer to avoid race conditions
-                            const rootsToUnmount = Array.from(chipRootsRef.current.values());
+                            const rootsToUnmount = Array.from(
+                                chipRootsRef.current.values()
+                            );
                             chipRootsRef.current.clear();
                             editorRef.current.innerHTML = "";
-                            
+
                             // Defer unmounting
                             setTimeout(() => {
                                 rootsToUnmount.forEach(({ root }) => {
@@ -101,7 +121,10 @@ export function InlineChatInput({
                                         root.unmount();
                                     } catch (error) {
                                         // Ignore errors if root is already unmounted
-                                        console.warn("Error unmounting chip root:", error);
+                                        console.warn(
+                                            "Error unmounting chip root:",
+                                            error
+                                        );
                                     }
                                 });
                             }, 0);
@@ -118,17 +141,30 @@ export function InlineChatInput({
     useEffect(() => {
         const handleWidgetDrop = (e: CustomEvent<WidgetLayout>) => {
             const widgetLayout = e.detail;
-            insertChipAtCursor(widgetLayout);
+            // Use ref to get the latest version of insertChipAtCursor
+            if (insertChipAtCursorRef.current) {
+                insertChipAtCursorRef.current(widgetLayout);
+            }
         };
 
-        window.addEventListener("widget-dropped", handleWidgetDrop as EventListener);
+        window.addEventListener(
+            "widget-dropped",
+            handleWidgetDrop as EventListener
+        );
 
         return () => {
-            window.removeEventListener("widget-dropped", handleWidgetDrop as EventListener);
+            window.removeEventListener(
+                "widget-dropped",
+                handleWidgetDrop as EventListener
+            );
         };
     }, []);
 
-    const renderChipElement = (chipId: string, widgetLayout: WidgetLayout, element: HTMLElement) => {
+    const renderChipElement = (
+        chipId: string,
+        widgetLayout: WidgetLayout,
+        element: HTMLElement
+    ) => {
         // Clean up existing root if any
         const existing = chipRootsRef.current.get(chipId);
         if (existing) {
@@ -153,6 +189,9 @@ export function InlineChatInput({
         const editor = editorRef.current;
         if (!editor) return;
 
+        // Ensure editor is focused first to establish a valid selection
+        editor.focus();
+
         const selection = window.getSelection();
         if (!selection || selection.rangeCount === 0) {
             // If no selection, append at end
@@ -161,8 +200,21 @@ export function InlineChatInput({
         }
 
         const range = selection.getRangeAt(0);
+
+        // Check if the range is actually within the editor
+        // If the commonAncestorContainer is not within the editor, append at end
+        const isRangeInEditor =
+            editor.contains(range.commonAncestorContainer) ||
+            range.commonAncestorContainer === editor;
+
+        if (!isRangeInEditor) {
+            // Selection is not in editor, append at end
+            appendChip(widgetLayout);
+            return;
+        }
+
         const chipId = `chip-${Date.now()}-${Math.random()}`;
-        
+
         // Create chip container element
         const chipContainer = document.createElement("span");
         chipContainer.contentEditable = "false";
@@ -175,31 +227,38 @@ export function InlineChatInput({
         // Insert chip
         range.deleteContents();
         range.insertNode(chipContainer);
-        
+
         // Render the chip component
         renderChipElement(chipId, widgetLayout, chipContainer);
-        
+
         // Add zero-width space after chip for cursor positioning
         const textNode = document.createTextNode("\u200B");
         range.setStartAfter(chipContainer);
         range.insertNode(textNode);
         range.collapse(false);
 
-        // Focus editor and set cursor
-        editor.focus();
+        // Set cursor position
         selection.removeAllRanges();
         selection.addRange(range);
-        
+
         // Notify content change
         checkContent();
     };
+
+    // Keep the ref updated with the latest function
+    useEffect(() => {
+        insertChipAtCursorRef.current = insertChipAtCursor;
+    });
 
     const appendChip = (widgetLayout: WidgetLayout) => {
         const editor = editorRef.current;
         if (!editor) return;
 
+        // Ensure editor is focused
+        editor.focus();
+
         const chipId = `chip-${Date.now()}-${Math.random()}`;
-        
+
         const chipContainer = document.createElement("span");
         chipContainer.contentEditable = "false";
         chipContainer.className = "inline-flex items-center mx-1 align-middle";
@@ -210,21 +269,21 @@ export function InlineChatInput({
 
         editor.appendChild(chipContainer);
         renderChipElement(chipId, widgetLayout, chipContainer);
-        
+
         const textNode = document.createTextNode("\u200B");
         editor.appendChild(textNode);
 
-        // Focus and set cursor at end
+        // Set cursor at end (after the text node we just appended)
         const range = document.createRange();
-        range.selectNodeContents(editor);
-        range.collapse(false);
+        range.setStartAfter(textNode);
+        range.collapse(true);
+
         const selection = window.getSelection();
         if (selection) {
             selection.removeAllRanges();
             selection.addRange(range);
         }
-        editor.focus();
-        
+
         // Notify content change
         checkContent();
     };
@@ -240,7 +299,7 @@ export function InlineChatInput({
             if (existing) {
                 chipRootsRef.current.delete(chipId);
                 chipElement.remove();
-                
+
                 // Defer unmounting
                 setTimeout(() => {
                     try {
@@ -254,17 +313,18 @@ export function InlineChatInput({
                 chipElement.remove();
             }
         }
-        
+
         // Notify content change
         checkContent();
     };
 
     // Check content and notify parent
-    const checkContent = () => {
+    const checkContent = useCallback(() => {
         const content = getContent();
-        const hasContent = content.text.trim().length > 0 || content.chips.length > 0;
+        const hasContent =
+            content.text.trim().length > 0 || content.chips.length > 0;
         onContentChange?.(hasContent);
-    };
+    }, [onContentChange]);
 
     const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
         if (disabled) return;
@@ -278,10 +338,12 @@ export function InlineChatInput({
                 // Clear editor
                 if (editorRef.current) {
                     // Clean up all chip roots - defer to avoid race conditions
-                    const rootsToUnmount = Array.from(chipRootsRef.current.values());
+                    const rootsToUnmount = Array.from(
+                        chipRootsRef.current.values()
+                    );
                     chipRootsRef.current.clear();
                     editorRef.current.innerHTML = "";
-                    
+
                     // Defer unmounting
                     setTimeout(() => {
                         rootsToUnmount.forEach(({ root }) => {
@@ -289,7 +351,10 @@ export function InlineChatInput({
                                 root.unmount();
                             } catch (error) {
                                 // Ignore errors if root is already unmounted
-                                console.warn("Error unmounting chip root:", error);
+                                console.warn(
+                                    "Error unmounting chip root:",
+                                    error
+                                );
                             }
                         });
                     }, 0);
@@ -310,7 +375,10 @@ export function InlineChatInput({
                 const container = range.startContainer;
                 if (container.nodeType === Node.TEXT_NODE) {
                     const prevSibling = container.previousSibling;
-                    if (prevSibling && prevSibling.nodeType === Node.ELEMENT_NODE) {
+                    if (
+                        prevSibling &&
+                        prevSibling.nodeType === Node.ELEMENT_NODE
+                    ) {
                         const element = prevSibling as HTMLElement;
                         const chipId = element.dataset.chipId;
                         if (chipId) {
@@ -348,18 +416,28 @@ export function InlineChatInput({
 
     // Initialize with initial value
     useEffect(() => {
-        if (initialValue && editorRef.current && editorRef.current.textContent === "") {
-            editorRef.current.textContent = initialValue;
+        if (initialValue && editorRef.current) {
+            // Only set if editor is empty or if initialValue has changed
+            const currentText = editorRef.current.textContent?.trim() || "";
+            if (currentText === "" || currentText !== initialValue.trim()) {
+                editorRef.current.textContent = initialValue;
+                // Trigger content change notification
+                checkContent();
+            }
         }
-    }, [initialValue]);
+    }, [initialValue, checkContent]);
 
     // Cleanup on unmount - defer to avoid race conditions
     useEffect(() => {
+        // Capture ref at effect setup time for cleanup
+        const chipRootsRefValue = chipRootsRef;
+
         return () => {
-            // Defer unmounting to avoid race conditions during render
-            const rootsToUnmount = Array.from(chipRootsRef.current.values());
-            chipRootsRef.current.clear();
-            
+            // Use captured ref value in cleanup
+            const chipRoots = chipRootsRefValue.current;
+            const rootsToUnmount = Array.from(chipRoots.values());
+            chipRoots.clear();
+
             // Use setTimeout to defer unmounting until after current render cycle
             setTimeout(() => {
                 rootsToUnmount.forEach(({ root }) => {
@@ -388,11 +466,10 @@ export function InlineChatInput({
                 setIsFocused(false);
                 onBlur?.();
             }}
-            className="flex flex-wrap items-center gap-1 min-h-[24px] max-h-[236px] overflow-y-auto px-0 py-1 text-sm text-[#262b2b] leading-6 outline-none focus:outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-[#919f9d] empty:before:pointer-events-none"
+            className="block min-h-[24px] max-h-[236px] overflow-y-auto px-0 py-1 text-sm text-[#262b2b] leading-6 outline-none focus:outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-[#919f9d] empty:before:pointer-events-none"
             data-placeholder={placeholder}
             suppressContentEditableWarning
             onInput={checkContent}
         />
     );
 }
-

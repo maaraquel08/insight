@@ -153,18 +153,18 @@ export function DashboardGrid() {
                             style={{ ...widthProps.style, height: "auto" }}
                         >
                             <DraggableWidgetWrapper layout={layout}>
-                                <WidgetWrapper layout={layout}>
-                                    {WidgetComponent ? (
-                                        <WidgetComponent />
-                                    ) : (
-                                        <div className="bg-white rounded-xl border border-[#d9dede] p-8">
-                                            <p className="text-sm text-[#5d6c6b]">
-                                                Widget &quot;{layout.widgetId}&quot;
-                                                not found
-                                            </p>
-                                        </div>
-                                    )}
-                                </WidgetWrapper>
+                            <WidgetWrapper layout={layout}>
+                                {WidgetComponent ? (
+                                    <WidgetComponent />
+                                ) : (
+                                    <div className="bg-white rounded-xl border border-[#d9dede] p-8">
+                                        <p className="text-sm text-[#5d6c6b]">
+                                            Widget &quot;{layout.widgetId}&quot;
+                                            not found
+                                        </p>
+                                    </div>
+                                )}
+                            </WidgetWrapper>
                             </DraggableWidgetWrapper>
                         </div>
                     );

@@ -4,7 +4,8 @@ export const widgetRegistry: WidgetMetadata[] = [
     {
         id: "metric-cards-section",
         name: "Metric Cards",
-        description: "Key performance indicators including headcount, attrition rate, absenteeism, leave utilization, and average tenure",
+        description:
+            "Key performance indicators including headcount, attrition rate, absenteeism, leave utilization, and average tenure",
         category: "People Health",
         dataSource: ["People Health"],
         defaultSize: "Medium", // All widgets use equal width
@@ -14,7 +15,8 @@ export const widgetRegistry: WidgetMetadata[] = [
     {
         id: "headcount-trend-chart",
         name: "Headcount Trend",
-        description: "Monitor workforce growth or reduction over time with visual trend analysis",
+        description:
+            "Monitor workforce growth or reduction over time with visual trend analysis",
         category: "People Health",
         dataSource: ["People Health"],
         defaultSize: "Medium",
@@ -24,7 +26,8 @@ export const widgetRegistry: WidgetMetadata[] = [
     {
         id: "attrition-trend-chart",
         name: "Attrition Trend",
-        description: "Track employee turnover rates and identify patterns over time",
+        description:
+            "Track employee turnover rates and identify patterns over time",
         category: "People Health",
         dataSource: ["People Health"],
         defaultSize: "Medium",
@@ -34,7 +37,8 @@ export const widgetRegistry: WidgetMetadata[] = [
     {
         id: "leave-types-breakdown",
         name: "Leave Types Breakdown",
-        description: "Visual breakdown of different types of leave taken by employees",
+        description:
+            "Visual breakdown of different types of leave taken by employees",
         category: "Time & Attendance",
         dataSource: ["Time & Attendance"],
         defaultSize: "Medium",
@@ -54,11 +58,53 @@ export const widgetRegistry: WidgetMetadata[] = [
     {
         id: "tenure-demographics",
         name: "Tenure & Demographics",
-        description: "Comprehensive view of employee tenure distribution and demographic insights",
+        description:
+            "Comprehensive view of employee tenure distribution and demographic insights",
         category: "People Health",
         dataSource: ["People Health"],
         defaultSize: "Medium",
         component: "TenureDemographics",
+        locked: false,
+    },
+    {
+        id: "executive-snapshot-card-headcount",
+        name: "Total Headcount",
+        description: "Current total headcount with month-over-month change",
+        category: "People Health",
+        dataSource: ["People Health"],
+        defaultSize: "Small",
+        component: "ExecutiveSnapshotCard",
+        locked: false,
+    },
+    {
+        id: "executive-snapshot-card-attrition",
+        name: "Attrition Rate",
+        description: "Current attrition rate with month-over-month change",
+        category: "People Health",
+        dataSource: ["People Health"],
+        defaultSize: "Small",
+        component: "ExecutiveSnapshotCard",
+        locked: false,
+    },
+    {
+        id: "executive-snapshot-card-payroll",
+        name: "Payroll Cost",
+        description: "Current payroll cost with month-over-month change",
+        category: "Payroll",
+        dataSource: ["Payroll"],
+        defaultSize: "Small",
+        component: "ExecutiveSnapshotCard",
+        locked: false,
+    },
+    {
+        id: "executive-snapshot-card-overtime",
+        name: "Overtime % of Payroll",
+        description:
+            "Overtime percentage of payroll with month-over-month change",
+        category: "Payroll",
+        dataSource: ["Payroll"],
+        defaultSize: "Small",
+        component: "ExecutiveSnapshotCard",
         locked: false,
     },
 ];
@@ -67,9 +113,7 @@ export function getWidgetById(id: string): WidgetMetadata | undefined {
     return widgetRegistry.find((widget) => widget.id === id);
 }
 
-export function getWidgetsByCategory(
-    category: string
-): WidgetMetadata[] {
+export function getWidgetsByCategory(category: string): WidgetMetadata[] {
     return widgetRegistry.filter((widget) => widget.category === category);
 }
 
@@ -82,4 +126,3 @@ export function searchWidgets(query: string): WidgetMetadata[] {
             widget.category.toLowerCase().includes(lowerQuery)
     );
 }
-

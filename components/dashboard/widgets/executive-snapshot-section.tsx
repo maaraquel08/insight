@@ -13,6 +13,8 @@ import { ExecutiveSnapshotCard } from "./executive-snapshot-card";
 import { useDashboard } from "@/contexts/dashboard-context";
 import { useChatSidekick } from "@/components/chatbot-sidekick";
 import { Button } from "@/components/ui/button";
+import { DraggableWidgetWrapper } from "../draggable-widget-wrapper";
+import type { WidgetLayout } from "@/types/dashboard";
 import {
     DndContext,
     closestCenter,
@@ -53,9 +55,10 @@ interface SortableCardProps {
     card: CardData;
     onRemove: (cardId: string) => void;
     onAskSidekick: (card: CardData) => void;
+    cardToWidgetLayout: (card: CardData) => WidgetLayout;
 }
 
-function SortableCard({ card, onRemove, onAskSidekick }: SortableCardProps) {
+function SortableCard({ card, onRemove, onAskSidekick, cardToWidgetLayout }: SortableCardProps) {
     const { isEditMode } = useDashboard();
     const [isHovered, setIsHovered] = useState(false);
     const {
@@ -93,15 +96,17 @@ function SortableCard({ card, onRemove, onAskSidekick }: SortableCardProps) {
             )}
 
             {/* Card Content */}
-            <ExecutiveSnapshotCard
-                icon={card.icon}
-                title={card.title}
-                value={card.value}
-                change={card.change}
-                changeType={card.changeType}
-                description={card.description}
-                onAskSidekick={() => onAskSidekick(card)}
-            />
+            <DraggableWidgetWrapper layout={cardToWidgetLayout(card)}>
+                <ExecutiveSnapshotCard
+                    icon={card.icon}
+                    title={card.title}
+                    value={card.value}
+                    change={card.change}
+                    changeType={card.changeType}
+                    description={card.description}
+                    onAskSidekick={() => onAskSidekick(card)}
+                />
+            </DraggableWidgetWrapper>
 
             {/* Edit Controls */}
             {isEditMode && (isHovered || isDragging) && (
@@ -159,6 +164,20 @@ export function ExecutiveSnapshotSection() {
     const handleAskSidekick = (card: CardData) => {
         const question = generateQuestion(card);
         openChat(question);
+    };
+
+    // Convert CardData to WidgetLayout for drag-to-chat functionality
+    const cardToWidgetLayout = (card: CardData): WidgetLayout => {
+        return {
+            id: `executive-snapshot-${card.id}`,
+            widgetId: `executive-snapshot-card-${card.id}`,
+            x: 0,
+            y: 0,
+            width: 3,
+            height: 1,
+            size: "Small",
+            order: cards.findIndex((c) => c.id === card.id),
+        };
     };
 
     const sensors = useSensors(
@@ -271,19 +290,24 @@ export function ExecutiveSnapshotSection() {
         // Render without drag-and-drop when not in edit mode
         return (
             <div className="flex gap-6 w-full">
-                {cards.map((card) => (
-                    <div key={card.id} className="flex-1 min-w-0">
-                        <ExecutiveSnapshotCard
-                            icon={card.icon}
-                            title={card.title}
-                            value={card.value}
-                            change={card.change}
-                            changeType={card.changeType}
-                            description={card.description}
-                            onAskSidekick={() => handleAskSidekick(card)}
-                        />
-                    </div>
-                ))}
+                {cards.map((card) => {
+                    const widgetLayout = cardToWidgetLayout(card);
+                    return (
+                        <div key={card.id} className="flex-1 min-w-0">
+                            <DraggableWidgetWrapper layout={widgetLayout}>
+                                <ExecutiveSnapshotCard
+                                    icon={card.icon}
+                                    title={card.title}
+                                    value={card.value}
+                                    change={card.change}
+                                    changeType={card.changeType}
+                                    description={card.description}
+                                    onAskSidekick={() => handleAskSidekick(card)}
+                                />
+                            </DraggableWidgetWrapper>
+                        </div>
+                    );
+                })}
             </div>
         );
     }
@@ -306,6 +330,7 @@ export function ExecutiveSnapshotSection() {
                             card={card}
                             onRemove={handleRemoveCard}
                             onAskSidekick={handleAskSidekick}
+                            cardToWidgetLayout={cardToWidgetLayout}
                         />
                     ))}
                 </SortableContext>

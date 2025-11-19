@@ -108,7 +108,7 @@ function AIMessage({ message }: { message: Message }) {
 
                 {/* Message Content */}
                 <div className="flex flex-col gap-4 items-start max-w-[768px] relative shrink-0 w-full">
-                    <div className="flex flex-col font-normal justify-center leading-0 relative shrink-0 text-[#262b2b] text-base w-full prose prose-sm max-w-none leading-6 [&>p]:mb-4 [&>p:last-child]:mb-0 [&>h2]:text-lg [&>h2]:font-semibold [&>h2]:mt-6 [&>h2]:mb-3 [&>h2]:text-[#262b2b] [&>h3]:text-base [&>h3]:font-semibold [&>h3]:mt-4 [&>h3]:mb-2 [&>h3]:text-[#262b2b] [&>ul]:list-disc [&>ul]:ml-6 [&>ul]:mb-4 [&>ul>li]:mb-1 [&>ol]:list-decimal [&>ol]:ml-6 [&>ol]:mb-4 [&>ol>li]:mb-1 [&>strong]:font-semibold [&>strong]:text-[#262b2b] [&>code]:bg-[#f1f2f3] [&>code]:px-1.5 [&>code]:py-0.5 [&>code]:rounded [&>code]:text-sm [&>code]:font-mono">
+                    <div className="flex flex-col font-normal justify-center relative shrink-0 text-[#262b2b] text-base w-full prose prose-sm max-w-none leading-6 [&>p]:mb-4 [&>p:last-child]:mb-0 [&>h2]:text-lg [&>h2]:font-semibold [&>h2]:mt-6 [&>h2]:mb-3 [&>h2]:text-[#262b2b] [&>h3]:text-base [&>h3]:font-semibold [&>h3]:mt-4 [&>h3]:mb-2 [&>h3]:text-[#262b2b] [&>ul]:list-disc [&>ul]:ml-6 [&>ul]:mb-4 [&>ul>li]:mb-1 [&>ol]:list-decimal [&>ol]:ml-6 [&>ol]:mb-4 [&>ol>li]:mb-1 [&>strong]:font-semibold [&>strong]:text-[#262b2b] [&>code]:bg-[#f1f2f3] [&>code]:px-1.5 [&>code]:py-0.5 [&>code]:rounded [&>code]:text-sm [&>code]:font-mono">
                         <ReactMarkdown>{displayedContent}</ReactMarkdown>
                         {isTyping && (
                             <span className="inline-block w-2 h-4 bg-[#262b2b] ml-1 animate-pulse" />
@@ -122,28 +122,94 @@ function AIMessage({ message }: { message: Message }) {
 
 // User Message Component
 function UserMessage({ message }: { message: Message }) {
+    // Parse message content to render chips inline with text
+    const renderInlineContent = () => {
+        if (!message.content) return null;
+
+        const parts: (string | WidgetLayout)[] = [];
+        const widgetRegex = /\[WIDGET:([^\]]+)\]/g;
+        let lastIndex = 0;
+        let match;
+        let hasWidgets = false;
+
+        // Reset regex for fresh search
+        widgetRegex.lastIndex = 0;
+
+        // Find all widget placeholders and split text
+        while ((match = widgetRegex.exec(message.content)) !== null) {
+            hasWidgets = true;
+            // Add text before the widget placeholder
+            if (match.index > lastIndex) {
+                const textBefore = message.content.substring(
+                    lastIndex,
+                    match.index
+                );
+                if (textBefore) {
+                    parts.push(textBefore);
+                }
+            }
+
+            // Find matching chip by widgetId
+            const widgetId = match[1];
+            const matchingChip = message.widgetChips?.find(
+                (chip) => chip.widgetId === widgetId
+            );
+
+            if (matchingChip) {
+                parts.push(matchingChip);
+            } else {
+                // If chip not found, keep the placeholder text
+                parts.push(match[0]);
+            }
+
+            lastIndex = match.index + match[0].length;
+        }
+
+        // Add remaining text after last widget
+        if (lastIndex < message.content.length) {
+            const textAfter = message.content.substring(lastIndex);
+            if (textAfter) {
+                parts.push(textAfter);
+            }
+        }
+
+        // If no widgets found, return original content as plain text
+        if (!hasWidgets) {
+            return <span>{message.content}</span>;
+        }
+
+        // Render parts inline
+        return (
+            <span className="inline-block">
+                {parts.map((part, index) => {
+                    if (typeof part === "string") {
+                        return <span key={index}>{part}</span>;
+                    } else {
+                        return (
+                            <span
+                                key={part.id}
+                                className="inline-flex items-center mx-1 align-middle"
+                            >
+                                <WidgetChip
+                                    widgetLayout={part}
+                                    variant="inline"
+                                    showRemove={false}
+                                />
+                            </span>
+                        );
+                    }
+                })}
+            </span>
+        );
+    };
+
     return (
         <div className="flex gap-1.5 items-end justify-end w-full">
-            <div className="bg-[#f1f2f3] flex flex-col gap-3 items-end justify-center max-w-[512px] px-4 py-3 relative rounded-xl shrink-0">
-                {/* Widget Chips */}
-                {message.widgetChips && message.widgetChips.length > 0 && (
-                    <div className="flex flex-wrap gap-2 items-center justify-end w-full">
-                        {message.widgetChips.map((layout) => (
-                            <WidgetChip
-                                key={layout.id}
-                                widgetLayout={layout}
-                                variant="message"
-                                showRemove={false}
-                            />
-                        ))}
-                    </div>
-                )}
-                {/* Message Content */}
-                {message.content && (
-                    <div className="flex flex-col font-normal justify-center leading-0 relative shrink-0 text-[#262b2b] text-base w-full">
-                        <p className="leading-6">{message.content}</p>
-                    </div>
-                )}
+            <div className="bg-[#f1f2f3] block max-w-[512px] px-4 py-3 relative rounded-xl shrink-0">
+                {/* Message Content with Inline Chips */}
+                <div className="font-normal text-[#262b2b] text-base leading-6">
+                    {renderInlineContent()}
+                </div>
             </div>
         </div>
     );
@@ -162,10 +228,7 @@ export function ChatSidekick({
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const dropZoneRef = useRef<HTMLDivElement>(null);
     const sendButtonRef = useRef<{ triggerSend: () => void }>(null);
-    const {
-        isDragOver,
-        setIsDragOver,
-    } = useChatWidget();
+    const { isDragOver, setIsDragOver } = useChatWidget();
 
     const hasMessages = messages.length > 0;
 
@@ -191,19 +254,29 @@ export function ChatSidekick({
             setIsDragOver(false);
         };
 
-        window.addEventListener("widget-drag-over", handleWidgetDragOver as EventListener);
+        window.addEventListener(
+            "widget-drag-over",
+            handleWidgetDragOver as EventListener
+        );
         window.addEventListener("widget-drag-end", handleWidgetDragEnd);
 
         return () => {
-            window.removeEventListener("widget-drag-over", handleWidgetDragOver as EventListener);
+            window.removeEventListener(
+                "widget-drag-over",
+                handleWidgetDragOver as EventListener
+            );
             window.removeEventListener("widget-drag-end", handleWidgetDragEnd);
         };
     }, [setIsDragOver]);
 
     // Widget drop is handled by InlineChatInput component
 
-    const handleSend = async (content: { text: string; chips: WidgetLayout[] }) => {
-        if ((!content.text.trim() && content.chips.length === 0) || isLoading) return;
+    const handleSend = async (content: {
+        text: string;
+        chips: WidgetLayout[];
+    }) => {
+        if ((!content.text.trim() && content.chips.length === 0) || isLoading)
+            return;
 
         const userMessage: Message = {
             id: Date.now().toString(),
@@ -257,7 +330,9 @@ export function ChatSidekick({
             const aiMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 role: "ai",
-                content: data.message || "I apologize, but I couldn't generate a response.",
+                content:
+                    data.message ||
+                    "I apologize, but I couldn't generate a response.",
             };
 
             setMessages((prev) => [...prev, aiMessage]);
@@ -277,11 +352,10 @@ export function ChatSidekick({
         }
     };
 
-
     return (
         <div className="bg-white border border-[#d9dede] border-solid relative rounded-2xl w-full min-h-[580px] h-auto flex flex-col overflow-hidden">
             {/* Header */}
-            <div className="bg-[rgba(255,255,255,0.2)] flex gap-2 items-center justify-center px-4 py-3 relative shrink-0 w-full z-[7]">
+            <div className="bg-[rgba(255,255,255,0.2)] flex gap-2 items-center justify-center px-4 py-3 relative shrink-0 w-full z-7">
                 <div className="flex gap-2 items-center flex-1 min-w-0 min-h-0">
                     <p className="text-base font-medium text-[#262b2b] leading-5">
                         Chat with Sidekick
@@ -312,7 +386,7 @@ export function ChatSidekick({
             </div>
 
             {/* Body - Messages or Greeting */}
-            <div className="bg-[rgba(255,255,255,0.2)] flex flex-col gap-4 flex-1 px-4 py-4 relative w-full z-[6] overflow-y-auto">
+            <div className="bg-[rgba(255,255,255,0.2)] flex flex-col gap-4 flex-1 px-4 py-4 relative w-full z-6 overflow-y-auto">
                 {!hasMessages ? (
                     // Greeting Section
                     <div className="flex flex-col gap-6 items-center justify-center flex-1 w-full">
@@ -364,16 +438,16 @@ export function ChatSidekick({
             </div>
 
             {/* Message Input */}
-            <div className="flex gap-2 items-start p-4 relative shrink-0 w-full z-[5] border-t border-[#d9dede]">
+            <div className="flex gap-2 items-start p-4 relative shrink-0 z-5 border-t border-[#d9dede] w-full">
                 <div
                     ref={dropZoneRef}
                     data-chat-drop-zone
-                    className={`bg-white border border-solid flex flex-col gap-2 grow items-start max-w-[768px] p-3 relative rounded-xl shrink-0 transition-all ${
+                    className={`bg-white border border-solid flex flex-col gap-2 grow items-start w-full p-3 relative rounded-xl shrink-0 transition-all ${
                         isDragOver
                             ? "border-[#158039] border-2 bg-[#f0f9f4] shadow-lg scale-[1.01]"
                             : isFocused
-                              ? "border-[#158039]"
-                              : "border-[#d9dede]"
+                            ? "border-[#158039]"
+                            : "border-[#d9dede]"
                     }`}
                 >
                     {/* Drop Zone Indicator */}
@@ -393,11 +467,15 @@ export function ChatSidekick({
                             placeholder="Message Sidekick... or drag a widget here"
                             disabled={isLoading}
                             onSend={handleSend}
-                            initialMessage={initialMessage}
                             onFocus={() => setIsFocused(true)}
                             onBlur={() => setIsFocused(false)}
                             onContentChange={setHasContent}
-                            sendButtonRef={sendButtonRef}
+                            initialValue={initialMessage}
+                            sendButtonRef={
+                                sendButtonRef as React.RefObject<{
+                                    triggerSend: () => void;
+                                }>
+                            }
                         />
                     </div>
 
@@ -418,7 +496,9 @@ export function ChatSidekick({
 
                             {/* Send Button */}
                             <button
-                                onClick={() => sendButtonRef.current?.triggerSend()}
+                                onClick={() =>
+                                    sendButtonRef.current?.triggerSend()
+                                }
                                 className={`box-border flex items-center justify-center w-9 h-9 overflow-clip relative rounded-lg shrink-0 transition-colors ${
                                     hasContent && !isLoading
                                         ? "bg-[#158039] hover:bg-[#158039]/90"
@@ -443,18 +523,18 @@ export function ChatSidekick({
 
             {/* Background Decorations */}
             {/* Layer 1: Circles (bottom) */}
-            <div className="absolute left-[-131px] w-[248px] h-[248px] top-[-113px] z-[1] pointer-events-none">
-                <div className="absolute inset-[-25.81%] bg-gradient-to-br from-purple-100 to-green-100 rounded-full opacity-30" />
+            <div className="absolute left-[-131px] w-[248px] h-[248px] top-[-113px] z-1 pointer-events-none">
+                <div className="absolute inset-[-25.81%] bg-linear-to-br from-purple-100 to-green-100 rounded-full opacity-30" />
             </div>
-            <div className="absolute left-[448px] w-[236px] h-[236px] top-[-64px] z-[2] pointer-events-none">
-                <div className="absolute inset-[-27.12%] bg-gradient-to-br from-green-100 to-blue-100 rounded-full opacity-30" />
+            <div className="absolute left-[448px] w-[236px] h-[236px] top-[-64px] z-2 pointer-events-none">
+                <div className="absolute inset-[-27.12%] bg-linear-to-br from-green-100 to-blue-100 rounded-full opacity-30" />
             </div>
-            <div className="absolute left-[200px] w-[160px] h-[160px] top-[306.52px] z-[3] pointer-events-none">
-                <div className="absolute inset-[-40%] bg-gradient-to-br from-yellow-100 to-orange-100 rounded-full opacity-30" />
+            <div className="absolute left-[200px] w-[160px] h-[160px] top-[306.52px] z-3 pointer-events-none">
+                <div className="absolute inset-[-40%] bg-linear-to-br from-yellow-100 to-orange-100 rounded-full opacity-30" />
             </div>
 
             {/* Layer 2: Texture (middle) */}
-            <div className="absolute inset-0 z-[4] pointer-events-none opacity-40">
+            <div className="absolute inset-0 z-4 pointer-events-none opacity-40">
                 <img
                     src="/images/Texture_BG_Pattern.png"
                     alt=""
@@ -464,4 +544,3 @@ export function ChatSidekick({
         </div>
     );
 }
-
