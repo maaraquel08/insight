@@ -89,10 +89,22 @@ export function InlineChatInput({
                         onSend?.(content);
                         // Clear editor
                         if (editorRef.current) {
-                            // Clean up all chip roots
-                            chipRootsRef.current.forEach(({ root }) => root.unmount());
+                            // Clean up all chip roots - defer to avoid race conditions
+                            const rootsToUnmount = Array.from(chipRootsRef.current.values());
                             chipRootsRef.current.clear();
                             editorRef.current.innerHTML = "";
+                            
+                            // Defer unmounting
+                            setTimeout(() => {
+                                rootsToUnmount.forEach(({ root }) => {
+                                    try {
+                                        root.unmount();
+                                    } catch (error) {
+                                        // Ignore errors if root is already unmounted
+                                        console.warn("Error unmounting chip root:", error);
+                                    }
+                                });
+                            }, 0);
                         }
                         // Notify content change (now empty)
                         onContentChange?.(false);
@@ -223,13 +235,24 @@ export function InlineChatInput({
 
         const chipElement = editor.querySelector(`[data-chip-id="${chipId}"]`);
         if (chipElement) {
-            // Clean up React root
+            // Clean up React root - defer to avoid race conditions
             const existing = chipRootsRef.current.get(chipId);
             if (existing) {
-                existing.root.unmount();
                 chipRootsRef.current.delete(chipId);
+                chipElement.remove();
+                
+                // Defer unmounting
+                setTimeout(() => {
+                    try {
+                        existing.root.unmount();
+                    } catch (error) {
+                        // Ignore errors if root is already unmounted
+                        console.warn("Error unmounting chip root:", error);
+                    }
+                }, 0);
+            } else {
+                chipElement.remove();
             }
-            chipElement.remove();
         }
         
         // Notify content change
@@ -254,10 +277,22 @@ export function InlineChatInput({
                 onSend?.(content);
                 // Clear editor
                 if (editorRef.current) {
-                    // Clean up all chip roots
-                    chipRootsRef.current.forEach(({ root }) => root.unmount());
+                    // Clean up all chip roots - defer to avoid race conditions
+                    const rootsToUnmount = Array.from(chipRootsRef.current.values());
                     chipRootsRef.current.clear();
                     editorRef.current.innerHTML = "";
+                    
+                    // Defer unmounting
+                    setTimeout(() => {
+                        rootsToUnmount.forEach(({ root }) => {
+                            try {
+                                root.unmount();
+                            } catch (error) {
+                                // Ignore errors if root is already unmounted
+                                console.warn("Error unmounting chip root:", error);
+                            }
+                        });
+                    }, 0);
                 }
                 // Notify content change (now empty)
                 onContentChange?.(false);
@@ -318,11 +353,24 @@ export function InlineChatInput({
         }
     }, [initialValue]);
 
-    // Cleanup on unmount
+    // Cleanup on unmount - defer to avoid race conditions
     useEffect(() => {
         return () => {
-            chipRootsRef.current.forEach(({ root }) => root.unmount());
+            // Defer unmounting to avoid race conditions during render
+            const rootsToUnmount = Array.from(chipRootsRef.current.values());
             chipRootsRef.current.clear();
+            
+            // Use setTimeout to defer unmounting until after current render cycle
+            setTimeout(() => {
+                rootsToUnmount.forEach(({ root }) => {
+                    try {
+                        root.unmount();
+                    } catch (error) {
+                        // Ignore errors if root is already unmounted
+                        console.warn("Error unmounting chip root:", error);
+                    }
+                });
+            }, 0);
         };
     }, []);
 
