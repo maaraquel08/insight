@@ -46,20 +46,12 @@ export function ActionFeedBody({
                         >
                             {comparison.direction === "up" ? (
                                 <CaretUp
-                                    className={`w-4 h-4 ${
-                                        comparison.direction === "up"
-                                            ? "text-[#158039]"
-                                            : "text-[#da2f38]"
-                                    }`}
+                                    className="w-4 h-4 text-[#158039]"
                                     weight="fill"
                                 />
                             ) : (
                                 <CaretDown
-                                    className={`w-4 h-4 ${
-                                        comparison.direction === "up"
-                                            ? "text-[#158039]"
-                                            : "text-[#da2f38]"
-                                    }`}
+                                    className="w-4 h-4 text-[#da2f38]"
                                     weight="fill"
                                 />
                             )}
