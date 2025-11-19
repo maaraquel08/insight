@@ -165,3 +165,86 @@
         transform: translateY(0);
     }
 }
+
+/* Rotating gradient border animation */
+@property --r2 {
+    syntax: "<angle>";
+    inherits: false;
+    initial-value: 0deg;
+}
+
+@property --x {
+    syntax: "<length>";
+    inherits: false;
+    initial-value: 0px;
+}
+
+@keyframes rotating-gradient {
+    0% {
+        --r2: 0deg;
+    }
+    32.82275711% {
+        --r2: 0deg;
+    }
+    50% {
+        --r2: 180deg;
+    }
+    82.82275711% {
+        --r2: 180deg;
+    }
+    100% {
+        --r2: 360deg;
+    }
+}
+
+@keyframes gradient-x {
+    /* w:h === 6:1 */
+    /* with a 80px x-margin */
+    0% {
+        --x: 80px;
+    }
+    /* 6/(6+3.14) * 50% */
+    32.82275711% {
+        --x: 520px;
+    }
+    50% {
+        --x: 520px;
+    }
+    /* 50% + 32.8% */
+    82.82275711% {
+        --x: 80px;
+    }
+    100% {
+        --x: 80px;
+    }
+}
+
+.rotating-gradient-border {
+    position: relative;
+    background: conic-gradient(
+        from calc(var(--r2) - 80deg) at var(--x) 50px,
+        rgba(129, 57, 238, 0.6) 0%,
+        rgba(255, 255, 255, 1) 20%,
+        rgba(236, 236, 236, 0.6) 25%
+    );
+    animation: -0.64s rotating-gradient 3s linear infinite,
+        -0.64s gradient-x 3s linear infinite;
+    border-radius: 0;
+    min-height: 100%;
+}
+
+.rotating-gradient-border::after {
+    content: "";
+    display: block;
+    position: absolute;
+    background: linear-gradient(
+        -16.72deg,
+        rgba(245, 243, 255, 1) 2.45%,
+        rgba(238, 233, 254, 1) 30.19%,
+        rgba(240, 253, 244, 1) 79.1%
+    );
+    inset: 2px;
+    border-radius: 0;
+    z-index: 1;
+    pointer-events: none;
+}

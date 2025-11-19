@@ -22,8 +22,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useDashboard } from "@/contexts/dashboard-context";
-import { WidgetWrapper } from "./widget-wrapper";
-import { getWidgetComponent } from "./widget-components";
+import { WidgetWrapper } from "../edit-mode/widget-wrapper";
+import { getWidgetComponent } from "../edit-mode/widget-components";
 import type { WidgetLayout } from "@/types/dashboard";
 
 interface SortableWidgetProps {

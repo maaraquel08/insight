@@ -1,10 +1,10 @@
 "use client";
 
-import { DashboardContainer } from "@/components/dashboard/dashboard-container";
-import { DashboardGrid } from "@/components/dashboard/dashboard-grid";
-import { EditModeBanner } from "@/components/dashboard/edit-mode-banner";
-import { PersonalizeHeader } from "@/components/dashboard/personalize-header";
-import { ExecutiveSnapshotSection } from "@/components/dashboard/executive-snapshot-section";
+import { DashboardContainer } from "@/components/dashboard/layout/dashboard-container";
+import { DashboardGrid } from "@/components/dashboard/layout/dashboard-grid";
+import { EditModeBanner } from "@/components/dashboard/edit-mode/edit-mode-banner";
+import { PersonalizeHeader } from "@/components/dashboard/layout/personalize-header";
+import { ExecutiveSnapshotSection } from "@/components/dashboard/widgets/executive-snapshot-section";
 import { FloatingChatSidekick } from "@/components/chatbot-sidekick";
 
 export default function Home() {

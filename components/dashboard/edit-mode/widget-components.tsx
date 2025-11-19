@@ -1,11 +1,11 @@
 "use client";
 
-import { MetricCardsSection } from "./metric-cards-section";
-import { HeadcountTrendChart } from "./headcount-trend-chart";
-import { AttritionTrendChart } from "./attrition-trend-chart";
-import { LeaveTypesBreakdown } from "./leave-types-breakdown";
-import { AbsenteeismTrendChart } from "./absenteeism-trend-chart";
-import { TenureDemographics } from "./tenure-demographics";
+import { MetricCardsSection } from "../widgets/metric-cards-section";
+import { HeadcountTrendChart } from "../widgets/headcount-trend-chart";
+import { AttritionTrendChart } from "../widgets/attrition-trend-chart";
+import { LeaveTypesBreakdown } from "../widgets/leave-types-breakdown";
+import { AbsenteeismTrendChart } from "../widgets/absenteeism-trend-chart";
+import { TenureDemographics } from "../widgets/tenure-demographics";
 
 type WidgetComponentMap = {
     [key: string]: React.ComponentType<any>;

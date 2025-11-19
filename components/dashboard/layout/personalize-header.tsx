@@ -3,8 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useDashboard } from "@/contexts/dashboard-context";
 import { PageHeader } from "@/components/page-header";
-import { EditModeControls } from "@/components/dashboard/edit-mode-controls";
-import { WidgetLibrary } from "@/components/dashboard/widget-library";
+import { EditModeControls } from "../edit-mode/edit-mode-controls";
+import { WidgetLibrary } from "../edit-mode/widget-library";
 import { Button } from "@/components/ui/button";
 
 export function PersonalizeHeader() {
