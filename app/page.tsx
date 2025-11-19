@@ -4,6 +4,7 @@ import { DashboardContainer } from "@/components/dashboard/layout/dashboard-cont
 import { DashboardGrid } from "@/components/dashboard/layout/dashboard-grid";
 import { EditModeBanner } from "@/components/dashboard/edit-mode/edit-mode-banner";
 import { PersonalizeHeader } from "@/components/dashboard/layout/personalize-header";
+import { DashboardTabs } from "@/components/dashboard/layout/dashboard-tabs";
 import { ExecutiveSnapshotSection } from "@/components/dashboard/widgets/executive-snapshot-section";
 import { FloatingChatSidekick } from "@/components/chatbot-sidekick";
 
@@ -18,18 +19,28 @@ export default function Home() {
                         {/* Edit Mode Banner */}
                         <EditModeBanner />
 
-                        {/* Executive Snapshot Section - Metric cards at top */}
+                        {/* Dashboard Tabs */}
                         <div className="w-full">
-                            <ExecutiveSnapshotSection />
-                        </div>
+                            <DashboardTabs
+                                actionFeedCount={8}
+                                analyticsContent={
+                                    <div className="flex flex-col gap-6 w-full pt-6">
+                                        {/* Executive Snapshot Section - Metric cards at top */}
+                                        <div className="w-full">
+                                            <ExecutiveSnapshotSection />
+                                        </div>
 
-                        {/* Dashboard Grid - Includes all widgets including Company Health */}
-                        <div className="w-full">
-                            <DashboardGrid />
+                                        {/* Dashboard Grid - Includes all widgets including Company Health */}
+                                        <div className="w-full">
+                                            <DashboardGrid />
+                                        </div>
+                                    </div>
+                                }
+                            />
                         </div>
                     </div>
                 </div>
-                
+
                 {/* Floating Chat Sidekick */}
                 <FloatingChatSidekick />
             </main>
