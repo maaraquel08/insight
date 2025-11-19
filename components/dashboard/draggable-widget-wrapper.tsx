@@ -3,6 +3,7 @@
 import { ReactNode, useState, useRef, useEffect } from "react";
 import { GripVertical } from "lucide-react";
 import { useChatWidget } from "@/contexts/chat-widget-context";
+import { useChatSidekick } from "@/components/chatbot-sidekick/chat-sidekick-context";
 import type { WidgetLayout } from "@/types/dashboard";
 
 interface DraggableWidgetWrapperProps {
@@ -19,9 +20,35 @@ export function DraggableWidgetWrapper({
     const [isDragging, setIsDragging] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
     const widgetRef = useRef<HTMLDivElement>(null);
     const ghostRef = useRef<HTMLDivElement>(null);
     const { setDraggingWidget } = useChatWidget();
+    
+    // Check if chat is open - only allow dragging when chat is open
+    const { isOpen: isChatOpen } = useChatSidekick();
+
+    // Check if dialog is open
+    useEffect(() => {
+        const checkDialog = () => {
+            const dialogOverlay = document.querySelector('[data-slot="dialog-overlay"][data-state="open"]');
+            setIsDialogOpen(!!dialogOverlay);
+        };
+
+        // Check initially
+        checkDialog();
+
+        // Watch for dialog state changes
+        const observer = new MutationObserver(checkDialog);
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['data-state'],
+        });
+
+        return () => observer.disconnect();
+    }, []);
 
     useEffect(() => {
         if (!isDragging) return;
@@ -94,7 +121,7 @@ export function DraggableWidgetWrapper({
     }, [isDragging, dragOffset, layout, setDraggingWidget]);
 
     const handleMouseDown = (e: React.MouseEvent) => {
-        if (disabled) return;
+        if (disabled || isDialogOpen || !isChatOpen) return;
 
         e.preventDefault();
         const rect = widgetRef.current?.getBoundingClientRect();
@@ -130,13 +157,15 @@ export function DraggableWidgetWrapper({
                 ref={widgetRef}
                 className={`relative w-full h-auto transition-all ${
                     isDragging ? "opacity-50 scale-[0.98]" : ""
-                } ${isHovered && !disabled ? "cursor-grab" : ""}`}
-                onMouseEnter={() => !disabled && setIsHovered(true)}
+                } ${isHovered && !disabled && !isDialogOpen && isChatOpen ? "cursor-grab" : ""} ${
+                    isDialogOpen ? "pointer-events-none" : ""
+                }`}
+                onMouseEnter={() => !disabled && !isDialogOpen && isChatOpen && setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
                 onMouseDown={handleMouseDown}
             >
-                {/* Grab Handle - appears on hover */}
-                {isHovered && !disabled && (
+                {/* Grab Handle - appears on hover when chat is open */}
+                {isHovered && !disabled && isChatOpen && (
                     <div
                         data-grab-handle
                         className="absolute top-2 left-2 z-20 pointer-events-none"

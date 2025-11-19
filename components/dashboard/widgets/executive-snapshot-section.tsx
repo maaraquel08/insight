@@ -97,15 +97,15 @@ function SortableCard({ card, onRemove, onAskSidekick, cardToWidgetLayout }: Sor
 
             {/* Card Content */}
             <DraggableWidgetWrapper layout={cardToWidgetLayout(card)}>
-                <ExecutiveSnapshotCard
-                    icon={card.icon}
-                    title={card.title}
-                    value={card.value}
-                    change={card.change}
-                    changeType={card.changeType}
-                    description={card.description}
-                    onAskSidekick={() => onAskSidekick(card)}
-                />
+            <ExecutiveSnapshotCard
+                icon={card.icon}
+                title={card.title}
+                value={card.value}
+                change={card.change}
+                changeType={card.changeType}
+                description={card.description}
+                onAskSidekick={() => onAskSidekick(card)}
+            />
             </DraggableWidgetWrapper>
 
             {/* Edit Controls */}
@@ -293,19 +293,19 @@ export function ExecutiveSnapshotSection() {
                 {cards.map((card) => {
                     const widgetLayout = cardToWidgetLayout(card);
                     return (
-                        <div key={card.id} className="flex-1 min-w-0">
+                    <div key={card.id} className="flex-1 min-w-0">
                             <DraggableWidgetWrapper layout={widgetLayout}>
-                                <ExecutiveSnapshotCard
-                                    icon={card.icon}
-                                    title={card.title}
-                                    value={card.value}
-                                    change={card.change}
-                                    changeType={card.changeType}
-                                    description={card.description}
-                                    onAskSidekick={() => handleAskSidekick(card)}
-                                />
+                        <ExecutiveSnapshotCard
+                            icon={card.icon}
+                            title={card.title}
+                            value={card.value}
+                            change={card.change}
+                            changeType={card.changeType}
+                            description={card.description}
+                            onAskSidekick={() => handleAskSidekick(card)}
+                        />
                             </DraggableWidgetWrapper>
-                        </div>
+                    </div>
                     );
                 })}
             </div>
