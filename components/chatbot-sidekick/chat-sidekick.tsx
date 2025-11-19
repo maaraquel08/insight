@@ -3,12 +3,17 @@
 import { useState, useRef, useEffect } from "react";
 import { PaperPlaneRight, Paperclip, X, ArrowsOut } from "phosphor-react";
 import ReactMarkdown from "react-markdown";
+import { useChatWidget } from "@/contexts/chat-widget-context";
+import { WidgetChip } from "./widget-chip";
+import { InlineChatInput } from "./inline-chat-input";
+import type { WidgetLayout } from "@/types/dashboard";
 
 interface Message {
     id: string;
     role: "user" | "ai";
     content: string;
     isLoading?: boolean;
+    widgetChips?: WidgetLayout[];
 }
 
 interface ChatSidekickProps {
@@ -119,10 +124,26 @@ function AIMessage({ message }: { message: Message }) {
 function UserMessage({ message }: { message: Message }) {
     return (
         <div className="flex gap-1.5 items-end justify-end w-full">
-            <div className="bg-[#f1f2f3] flex flex-col gap-6 items-end justify-center max-w-[512px] px-4 py-3 relative rounded-xl shrink-0">
-                <div className="flex flex-col font-normal justify-center leading-0 relative shrink-0 text-[#262b2b] text-base w-full">
-                    <p className="leading-6">{message.content}</p>
-                </div>
+            <div className="bg-[#f1f2f3] flex flex-col gap-3 items-end justify-center max-w-[512px] px-4 py-3 relative rounded-xl shrink-0">
+                {/* Widget Chips */}
+                {message.widgetChips && message.widgetChips.length > 0 && (
+                    <div className="flex flex-wrap gap-2 items-center justify-end w-full">
+                        {message.widgetChips.map((layout) => (
+                            <WidgetChip
+                                key={layout.id}
+                                widgetLayout={layout}
+                                variant="message"
+                                showRemove={false}
+                            />
+                        ))}
+                    </div>
+                )}
+                {/* Message Content */}
+                {message.content && (
+                    <div className="flex flex-col font-normal justify-center leading-0 relative shrink-0 text-[#262b2b] text-base w-full">
+                        <p className="leading-6">{message.content}</p>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -134,52 +155,65 @@ export function ChatSidekick({
     onSendMessage,
     initialMessage = "",
 }: ChatSidekickProps) {
-    const [message, setMessage] = useState(initialMessage);
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const [hasContent, setHasContent] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const dropZoneRef = useRef<HTMLDivElement>(null);
+    const sendButtonRef = useRef<{ triggerSend: () => void }>(null);
+    const {
+        isDragOver,
+        setIsDragOver,
+    } = useChatWidget();
 
-    const hasValue = message.trim().length > 0;
     const hasMessages = messages.length > 0;
 
-    // Update message when initialMessage changes
+    // Update focus when initialMessage changes
     useEffect(() => {
         if (initialMessage) {
-            setMessage(initialMessage);
             setIsFocused(true);
-            setTimeout(() => {
-                textareaRef.current?.focus();
-            }, 100);
         }
     }, [initialMessage]);
-
-    // Auto-resize textarea
-    useEffect(() => {
-        if (textareaRef.current) {
-            textareaRef.current.style.height = "auto";
-            textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-        }
-    }, [message]);
 
     // Scroll to bottom when messages change
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, isLoading]);
 
-    const handleSend = async () => {
-        if (!message.trim() || isLoading) return;
+    // Handle custom drag and drop events
+    useEffect(() => {
+        const handleWidgetDragOver = (e: CustomEvent<{ isOver: boolean }>) => {
+            setIsDragOver(e.detail.isOver);
+        };
+
+        const handleWidgetDragEnd = () => {
+            setIsDragOver(false);
+        };
+
+        window.addEventListener("widget-drag-over", handleWidgetDragOver as EventListener);
+        window.addEventListener("widget-drag-end", handleWidgetDragEnd);
+
+        return () => {
+            window.removeEventListener("widget-drag-over", handleWidgetDragOver as EventListener);
+            window.removeEventListener("widget-drag-end", handleWidgetDragEnd);
+        };
+    }, [setIsDragOver]);
+
+    // Widget drop is handled by InlineChatInput component
+
+    const handleSend = async (content: { text: string; chips: WidgetLayout[] }) => {
+        if ((!content.text.trim() && content.chips.length === 0) || isLoading) return;
 
         const userMessage: Message = {
             id: Date.now().toString(),
             role: "user",
-            content: message.trim(),
+            content: content.text.trim(),
+            widgetChips: content.chips.length > 0 ? content.chips : undefined,
         };
 
         setMessages((prev) => [...prev, userMessage]);
-        const currentMessage = message.trim();
-        setMessage("");
+        const currentMessage = content.text.trim();
         setIsLoading(true);
 
         // Call the onSendMessage callback
@@ -243,12 +277,6 @@ export function ChatSidekick({
         }
     };
 
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            handleSend();
-        }
-    };
 
     return (
         <div className="bg-white border border-[#d9dede] border-solid relative rounded-2xl w-full min-h-[580px] h-auto flex flex-col overflow-hidden">
@@ -338,23 +366,38 @@ export function ChatSidekick({
             {/* Message Input */}
             <div className="flex gap-2 items-start p-4 relative shrink-0 w-full z-[5] border-t border-[#d9dede]">
                 <div
-                    className={`bg-white border border-solid flex flex-col gap-2 grow items-start max-w-[768px] p-3 relative rounded-xl shrink-0 transition-colors ${
-                        isFocused ? "border-[#158039]" : "border-[#d9dede]"
+                    ref={dropZoneRef}
+                    data-chat-drop-zone
+                    className={`bg-white border border-solid flex flex-col gap-2 grow items-start max-w-[768px] p-3 relative rounded-xl shrink-0 transition-all ${
+                        isDragOver
+                            ? "border-[#158039] border-2 bg-[#f0f9f4] shadow-lg scale-[1.01]"
+                            : isFocused
+                              ? "border-[#158039]"
+                              : "border-[#d9dede]"
                     }`}
                 >
-                    {/* Text Input Area */}
+                    {/* Drop Zone Indicator */}
+                    {isDragOver && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-[#158039]/5 rounded-xl pointer-events-none z-10">
+                            <div className="text-center px-4 py-2">
+                                <p className="text-sm font-medium text-[#158039]">
+                                    Drop to reference this widget
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Inline Chat Input */}
                     <div className="flex gap-[10px] items-start max-h-[236px] overflow-x-clip overflow-y-auto relative shrink-0 w-full">
-                        <textarea
-                            ref={textareaRef}
-                            value={message}
-                            onChange={(e) => setMessage(e.target.value)}
-                            onKeyDown={handleKeyDown}
+                        <InlineChatInput
+                            placeholder="Message Sidekick... or drag a widget here"
+                            disabled={isLoading}
+                            onSend={handleSend}
+                            initialMessage={initialMessage}
                             onFocus={() => setIsFocused(true)}
                             onBlur={() => setIsFocused(false)}
-                            placeholder="Message Sidekick..."
-                            className="flex flex-col font-normal grow justify-center min-h-0 min-w-0 relative shrink-0 text-[#262b2b] text-sm leading-6 w-full resize-none border-none outline-none bg-transparent placeholder:text-[#919f9d]"
-                            rows={1}
-                            disabled={isLoading}
+                            onContentChange={setHasContent}
+                            sendButtonRef={sendButtonRef}
                         />
                     </div>
 
@@ -375,18 +418,18 @@ export function ChatSidekick({
 
                             {/* Send Button */}
                             <button
-                                onClick={handleSend}
+                                onClick={() => sendButtonRef.current?.triggerSend()}
                                 className={`box-border flex items-center justify-center w-9 h-9 overflow-clip relative rounded-lg shrink-0 transition-colors ${
-                                    hasValue && !isLoading
+                                    hasContent && !isLoading
                                         ? "bg-[#158039] hover:bg-[#158039]/90"
                                         : "bg-[#f1f2f3] hover:bg-[#e1e2e3]"
                                 }`}
                                 aria-label="Send message"
-                                disabled={!hasValue || isLoading}
+                                disabled={!hasContent || isLoading}
                             >
                                 <PaperPlaneRight
                                     className={`w-5 h-5 ${
-                                        hasValue && !isLoading
+                                        hasContent && !isLoading
                                             ? "text-white"
                                             : "text-[#4b686e]"
                                     }`}

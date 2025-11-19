@@ -3,6 +3,7 @@
 import { ReactNode } from "react";
 import { DashboardProvider } from "@/contexts/dashboard-context";
 import { ChatSidekickProvider } from "@/components/chatbot-sidekick";
+import { ChatWidgetProvider } from "@/contexts/chat-widget-context";
 
 interface DashboardContainerProps {
     children: ReactNode;
@@ -17,9 +18,9 @@ export function DashboardContainer({
 }: DashboardContainerProps) {
     return (
         <DashboardProvider userId={userId} role={role}>
-            <ChatSidekickProvider>
-            {children}
-            </ChatSidekickProvider>
+            <ChatWidgetProvider>
+                <ChatSidekickProvider>{children}</ChatSidekickProvider>
+            </ChatWidgetProvider>
         </DashboardProvider>
     );
 }

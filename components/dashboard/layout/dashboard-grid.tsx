@@ -23,6 +23,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useDashboard } from "@/contexts/dashboard-context";
 import { WidgetWrapper } from "../edit-mode/widget-wrapper";
+import { DraggableWidgetWrapper } from "../draggable-widget-wrapper";
 import { getWidgetComponent } from "../edit-mode/widget-components";
 import type { WidgetLayout } from "@/types/dashboard";
 
@@ -139,6 +140,7 @@ export function DashboardGrid() {
 
     if (!isEditMode) {
         // Render without drag-and-drop when not in edit mode
+        // But enable drag-to-chat functionality
         // Flexbox masonry layout: uniform gaps, content-based heights, natural flow
         return (
             <div className={`flex flex-wrap ${gapClass} items-start`}>
@@ -150,18 +152,20 @@ export function DashboardGrid() {
                             key={layout.id}
                             style={{ ...widthProps.style, height: "auto" }}
                         >
-                            <WidgetWrapper layout={layout}>
-                                {WidgetComponent ? (
-                                    <WidgetComponent />
-                                ) : (
-                                    <div className="bg-white rounded-xl border border-[#d9dede] p-8">
-                                        <p className="text-sm text-[#5d6c6b]">
-                                            Widget &quot;{layout.widgetId}&quot;
-                                            not found
-                                        </p>
-                                    </div>
-                                )}
-                            </WidgetWrapper>
+                            <DraggableWidgetWrapper layout={layout}>
+                                <WidgetWrapper layout={layout}>
+                                    {WidgetComponent ? (
+                                        <WidgetComponent />
+                                    ) : (
+                                        <div className="bg-white rounded-xl border border-[#d9dede] p-8">
+                                            <p className="text-sm text-[#5d6c6b]">
+                                                Widget &quot;{layout.widgetId}&quot;
+                                                not found
+                                            </p>
+                                        </div>
+                                    )}
+                                </WidgetWrapper>
+                            </DraggableWidgetWrapper>
                         </div>
                     );
                 })}
