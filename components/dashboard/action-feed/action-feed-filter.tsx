@@ -11,7 +11,6 @@ const categoryLabels: Record<NonNullable<Category>, string> = {
     engagement: "Engagement",
     attendance: "Attendance",
     productivity: "Productivity",
-    compliance: "Compliance",
     operations: "Operations",
 };
 
@@ -99,4 +98,3 @@ export function ActionFeedFilter({
         </div>
     );
 }
-

@@ -10,7 +10,6 @@ export interface ActionFeedItem {
         | "engagement"
         | "attendance"
         | "productivity"
-        | "compliance"
         | "operations"; // Category for filtering
     header: {
         title: string;
@@ -108,9 +107,8 @@ export const actionFeedData: ActionFeedItem[] = [
                     label: "Recommend Reallocation",
                     variant: "outline",
                     borderColor: "purple",
-                    onClick: () => {
-                        console.log("Recommend Reallocation clicked");
-                    },
+                    chatAction: "recommend-reallocation-absenteeism",
+                    useSimulation: true,
                 },
             ],
         },
@@ -153,9 +151,8 @@ export const actionFeedData: ActionFeedItem[] = [
                     label: "Recommend Reallocation",
                     variant: "outline",
                     borderColor: "purple",
-                    onClick: () => {
-                        console.log("Recommend Reallocation clicked");
-                    },
+                    chatAction: "recommend-reallocation-understaffed",
+                    useSimulation: true,
                 },
             ],
         },
@@ -197,9 +194,8 @@ export const actionFeedData: ActionFeedItem[] = [
                 {
                     label: "View Contributors",
                     variant: "outline",
-                    onClick: () => {
-                        console.log("View Contributors clicked");
-                    },
+                    chatAction: "view-contributors-productivity",
+                    useSimulation: true,
                 },
             ],
         },
@@ -241,9 +237,8 @@ export const actionFeedData: ActionFeedItem[] = [
                 {
                     label: "See Insights",
                     variant: "outline",
-                    onClick: () => {
-                        console.log("See Insights clicked");
-                    },
+                    chatAction: "see-insights-qa",
+                    useSimulation: true,
                 },
             ],
         },
@@ -286,9 +281,8 @@ export const actionFeedData: ActionFeedItem[] = [
                 {
                     label: "View Patterns",
                     variant: "outline",
-                    onClick: () => {
-                        console.log("View Patterns clicked");
-                    },
+                    chatAction: "view-patterns-attrition",
+                    useSimulation: true,
                 },
             ],
         },
@@ -330,59 +324,13 @@ export const actionFeedData: ActionFeedItem[] = [
                 {
                     label: "See Feedback Summary",
                     variant: "outline",
-                    onClick: () => {
-                        console.log("See Feedback Summary clicked");
-                    },
+                    chatAction: "see-feedback-summary",
+                    useSimulation: true,
                 },
             ],
         },
     },
-    {
-        id: "high-overtime-risk-009",
-        category: "compliance",
-        header: {
-            title: "People Risk",
-            timestamp: "4h ago",
-            priority: {
-                label: "High priority",
-                variant: "high",
-            },
-        },
-        body: {
-            mainAlert: {
-                message:
-                    "6 agents exceeded OT limits and may be at risk of burnout.",
-            },
-            comparison: {
-                value: "Above limit",
-                direction: "up",
-                show: true,
-            },
-            aiGenerated: {
-                message:
-                    "Extended overtime patterns detected. Recommend schedule adjustments to prevent fatigue.",
-                show: true,
-            },
-            impact: {
-                label: "Impact",
-                message:
-                    "Continued overtime may lead to decreased performance and increased error rates.",
-                show: true,
-            },
-        },
-        footer: {
-            actions: [
-                {
-                    label: "Adjust Schedules",
-                    variant: "outline",
-                    borderColor: "purple",
-                    onClick: () => {
-                        console.log("Adjust Schedules clicked");
-                    },
-                },
-            ],
-        },
-    },
+
     {
         id: "payroll-variance-010",
         category: "payroll",
@@ -420,9 +368,8 @@ export const actionFeedData: ActionFeedItem[] = [
                 {
                     label: "See Department Breakdown",
                     variant: "outline",
-                    onClick: () => {
-                        console.log("See Department Breakdown clicked");
-                    },
+                    chatAction: "see-department-breakdown",
+                    useSimulation: true,
                 },
             ],
         },
@@ -512,9 +459,8 @@ export const actionFeedData: ActionFeedItem[] = [
                     label: "Notify Them",
                     variant: "outline",
                     borderColor: "purple",
-                    onClick: () => {
-                        console.log("Notify Them clicked");
-                    },
+                    chatAction: "notify-them-missing-logs",
+                    useSimulation: true,
                 },
                 {
                     label: "View Missing Logs",
@@ -617,9 +563,8 @@ export const actionFeedData: ActionFeedItem[] = [
                     label: "Approve Leaves",
                     variant: "outline",
                     borderColor: "purple",
-                    onClick: () => {
-                        console.log("Approve Leaves clicked");
-                    },
+                    chatAction: "approve-leaves",
+                    useSimulation: true,
                 },
                 {
                     label: "View Requests",
