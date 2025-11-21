@@ -5,7 +5,7 @@ import { ChatSidekick } from "./chat-sidekick";
 import { Sparkle } from "phosphor-react";
 
 export function FloatingChatSidekick() {
-    const { isOpen, openChat, closeChat, initialMessage } = useChatSidekick();
+    const { isOpen, openChat, closeChat, initialMessage, simulatedFlow } = useChatSidekick();
 
     const handleSendMessage = (message: string) => {
         console.log("Message sent:", message);
@@ -41,6 +41,7 @@ export function FloatingChatSidekick() {
                         }}
                         onSendMessage={handleSendMessage}
                         initialMessage={initialMessage}
+                        simulatedFlow={simulatedFlow}
                     />
                 </div>
             )}

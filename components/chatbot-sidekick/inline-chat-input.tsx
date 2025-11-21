@@ -61,7 +61,7 @@ export function InlineChatInput({
             } else if (node.nodeType === Node.ELEMENT_NODE) {
                 const element = node as HTMLElement;
                 const chipId = element.dataset.chipId;
-
+                
                 if (chipId) {
                     // This is a chip - extract widget layout from stored data
                     const storedLayout = element.dataset.widgetLayout;
@@ -86,7 +86,7 @@ export function InlineChatInput({
         Array.from(editor.childNodes).forEach(traverse);
 
         const fullText = textParts.join("").trim();
-
+        
         return {
             text: fullText,
             chips: chipLayouts,
@@ -113,7 +113,7 @@ export function InlineChatInput({
                             );
                             chipRootsRef.current.clear();
                             editorRef.current.innerHTML = "";
-
+                            
                             // Defer unmounting
                             setTimeout(() => {
                                 rootsToUnmount.forEach(({ root }) => {
@@ -214,7 +214,7 @@ export function InlineChatInput({
         }
 
         const chipId = `chip-${Date.now()}-${Math.random()}`;
-
+        
         // Create chip container element
         const chipContainer = document.createElement("span");
         chipContainer.contentEditable = "false";
@@ -227,10 +227,10 @@ export function InlineChatInput({
         // Insert chip
         range.deleteContents();
         range.insertNode(chipContainer);
-
+        
         // Render the chip component
         renderChipElement(chipId, widgetLayout, chipContainer);
-
+        
         // Add zero-width space after chip for cursor positioning
         const textNode = document.createTextNode("\u200B");
         range.setStartAfter(chipContainer);
@@ -240,7 +240,7 @@ export function InlineChatInput({
         // Set cursor position
         selection.removeAllRanges();
         selection.addRange(range);
-
+        
         // Notify content change
         checkContent();
     };
@@ -258,7 +258,7 @@ export function InlineChatInput({
         editor.focus();
 
         const chipId = `chip-${Date.now()}-${Math.random()}`;
-
+        
         const chipContainer = document.createElement("span");
         chipContainer.contentEditable = "false";
         chipContainer.className = "inline-flex items-center mx-1 align-middle";
@@ -269,7 +269,7 @@ export function InlineChatInput({
 
         editor.appendChild(chipContainer);
         renderChipElement(chipId, widgetLayout, chipContainer);
-
+        
         const textNode = document.createTextNode("\u200B");
         editor.appendChild(textNode);
 
@@ -283,7 +283,7 @@ export function InlineChatInput({
             selection.removeAllRanges();
             selection.addRange(range);
         }
-
+        
         // Notify content change
         checkContent();
     };
@@ -299,7 +299,7 @@ export function InlineChatInput({
             if (existing) {
                 chipRootsRef.current.delete(chipId);
                 chipElement.remove();
-
+                
                 // Defer unmounting
                 setTimeout(() => {
                     try {
@@ -313,7 +313,7 @@ export function InlineChatInput({
                 chipElement.remove();
             }
         }
-
+        
         // Notify content change
         checkContent();
     };
@@ -343,7 +343,7 @@ export function InlineChatInput({
                     );
                     chipRootsRef.current.clear();
                     editorRef.current.innerHTML = "";
-
+                    
                     // Defer unmounting
                     setTimeout(() => {
                         rootsToUnmount.forEach(({ root }) => {
@@ -420,7 +420,7 @@ export function InlineChatInput({
             // Only set if editor is empty or if initialValue has changed
             const currentText = editorRef.current.textContent?.trim() || "";
             if (currentText === "" || currentText !== initialValue.trim()) {
-                editorRef.current.textContent = initialValue;
+            editorRef.current.textContent = initialValue;
                 // Trigger content change notification
                 checkContent();
             }
@@ -437,7 +437,7 @@ export function InlineChatInput({
             const chipRoots = chipRootsRefValue.current;
             const rootsToUnmount = Array.from(chipRoots.values());
             chipRoots.clear();
-
+            
             // Use setTimeout to defer unmounting until after current render cycle
             setTimeout(() => {
                 rootsToUnmount.forEach(({ root }) => {

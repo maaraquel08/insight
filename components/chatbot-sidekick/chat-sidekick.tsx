@@ -21,6 +21,7 @@ interface ChatSidekickProps {
     onMaximize?: () => void;
     onSendMessage?: (message: string) => void;
     initialMessage?: string;
+    simulatedFlow?: import("@/lib/chat-simulations").SimulatedFlow;
 }
 
 // Loading Animation Component
@@ -220,6 +221,7 @@ export function ChatSidekick({
     onMaximize,
     onSendMessage,
     initialMessage = "",
+    simulatedFlow,
 }: ChatSidekickProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -229,6 +231,8 @@ export function ChatSidekick({
     const dropZoneRef = useRef<HTMLDivElement>(null);
     const sendButtonRef = useRef<{ triggerSend: () => void }>(null);
     const { isDragOver, setIsDragOver } = useChatWidget();
+    const simulatedFlowRef = useRef(simulatedFlow);
+    const hasSimulatedRef = useRef(false);
 
     const hasMessages = messages.length > 0;
 
@@ -238,6 +242,96 @@ export function ChatSidekick({
             setIsFocused(true);
         }
     }, [initialMessage]);
+
+    // Reset messages and simulation state when simulated flow changes or chat closes
+    useEffect(() => {
+        if (simulatedFlow) {
+            setMessages([]);
+            hasSimulatedRef.current = false;
+        }
+    }, [simulatedFlow]);
+
+    // Reset simulation state when component unmounts or chat closes
+    useEffect(() => {
+        return () => {
+            hasSimulatedRef.current = false;
+        };
+    }, []);
+
+    // Handle simulated flow - use a ref to track the flow to prevent duplicate execution
+    const currentFlowRef = useRef<typeof simulatedFlow>(undefined);
+
+    useEffect(() => {
+        // Only execute if we have a new simulated flow that hasn't been processed
+        if (
+            simulatedFlow &&
+            simulatedFlow !== currentFlowRef.current &&
+            !hasSimulatedRef.current &&
+            simulatedFlow.messages &&
+            simulatedFlow.messages.length > 0
+        ) {
+            currentFlowRef.current = simulatedFlow;
+            hasSimulatedRef.current = true;
+
+            const executeSimulatedFlow = async () => {
+                // Generate a unique base timestamp for this flow execution
+                const flowId = Date.now();
+
+                for (let i = 0; i < simulatedFlow.messages.length; i++) {
+                    const msg = simulatedFlow.messages[i];
+                    const delay = msg.delay || 0;
+
+                    // Wait for delay
+                    if (delay > 0) {
+                        await new Promise((resolve) =>
+                            setTimeout(resolve, delay)
+                        );
+                    }
+
+                    // Add message with unique ID using flowId + index + random component
+                    const message: Message = {
+                        id: `sim-${flowId}-${i}-${Math.random()
+                            .toString(36)
+                            .substr(2, 9)}`,
+                        role: msg.role,
+                        content: msg.content,
+                    };
+
+                    setMessages((prev) => {
+                        // Prevent duplicate messages by checking if message already exists
+                        const exists = prev.some((m) => m.id === message.id);
+                        if (exists) {
+                            return prev;
+                        }
+                        return [...prev, message];
+                    });
+
+                    // If it's a user message and autoSend is enabled, trigger send
+                    if (
+                        msg.role === "user" &&
+                        simulatedFlow.autoSend &&
+                        i === 0
+                    ) {
+                        // Call onSendMessage if provided
+                        if (onSendMessage) {
+                            onSendMessage(msg.content);
+                        }
+                    }
+
+                    // If it's an AI message, show loading state briefly
+                    if (msg.role === "ai") {
+                        setIsLoading(true);
+                        await new Promise((resolve) =>
+                            setTimeout(resolve, 500)
+                        );
+                        setIsLoading(false);
+                    }
+                }
+            };
+
+            executeSimulatedFlow();
+        }
+    }, [simulatedFlow, onSendMessage]);
 
     // Scroll to bottom when messages change
     useEffect(() => {

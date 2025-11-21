@@ -5,6 +5,13 @@
 
 export interface ActionFeedItem {
     id: string;
+    category?:
+        | "payroll"
+        | "engagement"
+        | "attendance"
+        | "productivity"
+        | "compliance"
+        | "operations"; // Category for filtering
     header: {
         title: string;
         timestamp: string;
@@ -38,6 +45,14 @@ export interface ActionFeedItem {
             variant: "outline" | "primary" | "secondary";
             borderColor?: "purple" | "default";
             onClick?: () => void;
+            chatAction?:
+                | "coa"
+                | "leave"
+                | "attendance"
+                | "payroll"
+                | "schedule"
+                | string; // Pre-defined chat actions or custom message
+            useSimulation?: boolean; // Whether to use simulated flow instead of just opening with message
         }>;
     };
 }
@@ -49,6 +64,7 @@ export interface ActionFeedItem {
 export const actionFeedData: ActionFeedItem[] = [
     {
         id: "absenteeism-alert-001",
+        category: "attendance",
         header: {
             title: "Workforce Attendance & Adherence",
             timestamp: "3d 2h ago",
@@ -60,15 +76,16 @@ export const actionFeedData: ActionFeedItem[] = [
         body: {
             mainAlert: {
                 message:
-                    "Absenteeism is at 12%, higher than your daily target of 8%.",
+                    "Absenteeism rate is 12%, higher than your daily target of 8%.",
             },
             comparison: {
-                value: "4 vs last month",
+                value: "4% above target",
                 direction: "up",
                 show: true,
             },
             aiGenerated: {
-                message: "Growth driven by new client onboarding in Cebu site.",
+                message:
+                    "Absenteeism spike concentrated in morning shifts. Consider activating reserve staff.",
                 show: true,
             },
             impact: {
@@ -88,21 +105,67 @@ export const actionFeedData: ActionFeedItem[] = [
                     },
                 },
                 {
-                    label: "Apply Suggestions",
+                    label: "Recommend Reallocation",
                     variant: "outline",
                     borderColor: "purple",
                     onClick: () => {
-                        console.log("Apply Suggestions clicked");
+                        console.log("Recommend Reallocation clicked");
                     },
                 },
             ],
         },
     },
     {
-        id: "overtime-spike-002",
+        id: "staffing-gap-002",
+        category: "attendance",
         header: {
-            title: "Overtime Cost Management",
-            timestamp: "1d 5h ago",
+            title: "Workforce Attendance & Adherence",
+            timestamp: "2h ago",
+            priority: {
+                label: "High priority",
+                variant: "high",
+            },
+        },
+        body: {
+            mainAlert: {
+                message: "2 queues are under-staffed for the next shift.",
+            },
+            comparison: {
+                value: "Below threshold",
+                direction: "down",
+                show: true,
+            },
+            aiGenerated: {
+                message:
+                    "Queue A and Queue C need 3 additional agents each to meet SLA targets.",
+                show: true,
+            },
+            impact: {
+                label: "Impact",
+                message:
+                    "SLA performance may drop below 90% threshold if staffing gap is not addressed.",
+                show: true,
+            },
+        },
+        footer: {
+            actions: [
+                {
+                    label: "Recommend Reallocation",
+                    variant: "outline",
+                    borderColor: "purple",
+                    onClick: () => {
+                        console.log("Recommend Reallocation clicked");
+                    },
+                },
+            ],
+        },
+    },
+    {
+        id: "low-productivity-005",
+        category: "productivity",
+        header: {
+            title: "Performance & Productivity",
+            timestamp: "4h ago",
             priority: {
                 label: "Medium priority",
                 variant: "medium",
@@ -110,50 +173,266 @@ export const actionFeedData: ActionFeedItem[] = [
         },
         body: {
             mainAlert: {
-                message:
-                    "Overtime costs increased by 15% this week, exceeding budget allocation.",
+                message: "Team Delta productivity is down by 14% today.",
             },
             comparison: {
-                value: "15% vs last week",
-                direction: "up",
+                value: "14% vs yesterday",
+                direction: "down",
                 show: true,
             },
             aiGenerated: {
                 message:
-                    "Spike due to coverage gaps during peak season. Consider redistributing shifts.",
+                    "Productivity decline linked to increased call complexity and system delays.",
                 show: true,
             },
             impact: {
                 label: "Impact",
                 message:
-                    "Monthly budget may be exceeded by 8% if current trend continues.",
+                    "Daily output targets may not be met if productivity trend continues.",
                 show: true,
             },
         },
         footer: {
             actions: [
                 {
-                    label: "View Budget Report",
+                    label: "View Contributors",
                     variant: "outline",
                     onClick: () => {
-                        console.log("View Budget Report clicked");
-                    },
-                },
-                {
-                    label: "Optimize Shifts",
-                    variant: "primary",
-                    onClick: () => {
-                        console.log("Optimize Shifts clicked");
+                        console.log("View Contributors clicked");
                     },
                 },
             ],
         },
     },
     {
-        id: "retention-improvement-003",
+        id: "qa-scores-dropping-006",
+        category: "productivity",
         header: {
-            title: "Employee Retention Metrics",
-            timestamp: "5h ago",
+            title: "Performance & Productivity",
+            timestamp: "6h ago",
+            priority: {
+                label: "Medium priority",
+                variant: "medium",
+            },
+        },
+        body: {
+            mainAlert: {
+                message: "QA pass rate decreased from 92% to 86%.",
+            },
+            comparison: {
+                value: "6% drop",
+                direction: "down",
+                show: true,
+            },
+            aiGenerated: {
+                message:
+                    "QA decline concentrated in compliance-related errors. Additional training may be needed.",
+                show: true,
+            },
+            impact: {
+                label: "Impact",
+                message:
+                    "Client satisfaction scores may be affected if QA trends continue downward.",
+                show: true,
+            },
+        },
+        footer: {
+            actions: [
+                {
+                    label: "See Insights",
+                    variant: "outline",
+                    onClick: () => {
+                        console.log("See Insights clicked");
+                    },
+                },
+            ],
+        },
+    },
+    {
+        id: "attrition-risk-007",
+        category: "engagement",
+        header: {
+            title: "People Risk",
+            timestamp: "1d ago",
+            priority: {
+                label: "High priority",
+                variant: "high",
+            },
+        },
+        body: {
+            mainAlert: {
+                message:
+                    "7 agents show early indicators of potential attrition risk.",
+            },
+            comparison: {
+                value: "Pattern detected",
+                direction: "down",
+                show: true,
+            },
+            aiGenerated: {
+                message:
+                    "Risk indicators include attendance dips and engagement score declines. Early intervention recommended.",
+                show: true,
+            },
+            impact: {
+                label: "Impact",
+                message:
+                    "Potential loss of experienced agents may affect team stability and knowledge retention.",
+                show: true,
+            },
+        },
+        footer: {
+            actions: [
+                {
+                    label: "View Patterns",
+                    variant: "outline",
+                    onClick: () => {
+                        console.log("View Patterns clicked");
+                    },
+                },
+            ],
+        },
+    },
+    {
+        id: "team-sentiment-drop-008",
+        category: "engagement",
+        header: {
+            title: "People Risk",
+            timestamp: "2d ago",
+            priority: {
+                label: "Medium priority",
+                variant: "medium",
+            },
+        },
+        body: {
+            mainAlert: {
+                message: "Engagement scores for Team Gamma dropped this week.",
+            },
+            comparison: {
+                value: "Below baseline",
+                direction: "down",
+                show: true,
+            },
+            aiGenerated: {
+                message:
+                    "Sentiment decline may be linked to recent schedule changes. Consider gathering feedback.",
+                show: true,
+            },
+            impact: {
+                label: "Impact",
+                message:
+                    "Lower engagement may affect productivity and increase attrition risk.",
+                show: true,
+            },
+        },
+        footer: {
+            actions: [
+                {
+                    label: "See Feedback Summary",
+                    variant: "outline",
+                    onClick: () => {
+                        console.log("See Feedback Summary clicked");
+                    },
+                },
+            ],
+        },
+    },
+    {
+        id: "high-overtime-risk-009",
+        category: "compliance",
+        header: {
+            title: "People Risk",
+            timestamp: "4h ago",
+            priority: {
+                label: "High priority",
+                variant: "high",
+            },
+        },
+        body: {
+            mainAlert: {
+                message:
+                    "6 agents exceeded OT limits and may be at risk of burnout.",
+            },
+            comparison: {
+                value: "Above limit",
+                direction: "up",
+                show: true,
+            },
+            aiGenerated: {
+                message:
+                    "Extended overtime patterns detected. Recommend schedule adjustments to prevent fatigue.",
+                show: true,
+            },
+            impact: {
+                label: "Impact",
+                message:
+                    "Continued overtime may lead to decreased performance and increased error rates.",
+                show: true,
+            },
+        },
+        footer: {
+            actions: [
+                {
+                    label: "Adjust Schedules",
+                    variant: "outline",
+                    borderColor: "purple",
+                    onClick: () => {
+                        console.log("Adjust Schedules clicked");
+                    },
+                },
+            ],
+        },
+    },
+    {
+        id: "payroll-variance-010",
+        category: "payroll",
+        header: {
+            title: "Payroll & Compliance Health",
+            timestamp: "1d ago",
+            priority: {
+                label: "Medium priority",
+                variant: "medium",
+            },
+        },
+        body: {
+            mainAlert: {
+                message: "Payroll cost is trending +11% vs last month.",
+            },
+            comparison: {
+                value: "11% increase",
+                direction: "up",
+                show: true,
+            },
+            aiGenerated: {
+                message:
+                    "Payroll variance driven by overtime hours and shift differentials. Review allocation.",
+                show: true,
+            },
+            impact: {
+                label: "Impact",
+                message:
+                    "Budget may exceed monthly allocation if current trend continues.",
+                show: true,
+            },
+        },
+        footer: {
+            actions: [
+                {
+                    label: "See Department Breakdown",
+                    variant: "outline",
+                    onClick: () => {
+                        console.log("See Department Breakdown clicked");
+                    },
+                },
+            ],
+        },
+    },
+    {
+        id: "ai-rebalance-staffing-011",
+        category: "operations",
+        header: {
+            title: "Operational Insights & AI Recommendations",
+            timestamp: "30m ago",
             priority: {
                 label: "Low priority",
                 variant: "low",
@@ -162,41 +441,43 @@ export const actionFeedData: ActionFeedItem[] = [
         body: {
             mainAlert: {
                 message:
-                    "Retention rate improved to 94%, up from 91% last quarter.",
+                    "AI detected high idle time in Queue B — recommend moving 4 agents.",
             },
             comparison: {
-                value: "3% vs last quarter",
+                value: "Optimization opportunity",
                 direction: "up",
                 show: true,
             },
             aiGenerated: {
                 message:
-                    "Improved retention driven by enhanced onboarding program and flexible work arrangements.",
+                    "Rebalancing agents from Queue B to Queue A can improve overall efficiency by 12%.",
                 show: true,
             },
             impact: {
                 label: "Impact",
                 message:
-                    "Reduced hiring costs and improved team stability across all departments.",
+                    "Better resource utilization and improved SLA performance across queues.",
                 show: true,
             },
         },
         footer: {
             actions: [
                 {
-                    label: "View Details",
+                    label: "Apply Suggestion",
                     variant: "outline",
+                    borderColor: "purple",
                     onClick: () => {
-                        console.log("View Details clicked");
+                        console.log("Apply Suggestion clicked");
                     },
                 },
             ],
         },
     },
     {
-        id: "queue-overflow-004",
+        id: "missing-logs-payroll-012",
+        category: "payroll",
         header: {
-            title: "Customer Service Queue Alert",
+            title: "Payroll & Compliance Health",
             timestamp: "2h ago",
             priority: {
                 label: "High priority",
@@ -206,97 +487,51 @@ export const actionFeedData: ActionFeedItem[] = [
         body: {
             mainAlert: {
                 message:
-                    "Queue 3 has 45 pending tickets, exceeding the 30-ticket threshold.",
+                    "15 employees have missing clock in/out logs affecting payroll processing.",
             },
             comparison: {
-                value: "15 over threshold",
-                direction: "up",
+                value: "15 missing logs",
+                direction: "down",
                 show: true,
             },
             aiGenerated: {
                 message:
-                    "Recommend reassigning 3 agents from Queue 1 to handle the overflow.",
+                    "Missing logs detected for the current pay period. Notify employees to submit attendance corrections.",
                 show: true,
             },
             impact: {
                 label: "Impact",
                 message:
-                    "Average wait time may increase to 8 minutes if not addressed within 30 minutes.",
+                    "Payroll processing may be delayed if logs are not resolved before cutoff.",
                 show: true,
             },
         },
         footer: {
             actions: [
                 {
-                    label: "View Queue Status",
-                    variant: "outline",
-                    onClick: () => {
-                        console.log("View Queue Status clicked");
-                    },
-                },
-                {
-                    label: "Reassign Agents",
+                    label: "Notify Them",
                     variant: "outline",
                     borderColor: "purple",
                     onClick: () => {
-                        console.log("Reassign Agents clicked");
+                        console.log("Notify Them clicked");
                     },
                 },
-            ],
-        },
-    },
-    {
-        id: "training-completion-005",
-        header: {
-            title: "Training Program Progress",
-            timestamp: "1d ago",
-        },
-        body: {
-            mainAlert: {
-                message:
-                    "85% of employees completed the Q4 safety training, meeting the target.",
-            },
-            comparison: {
-                value: "5% above target",
-                direction: "up",
-                show: true,
-            },
-            aiGenerated: {
-                message:
-                    "Training completion rate exceeded expectations. Consider expanding program to other departments.",
-                show: true,
-            },
-            impact: {
-                label: "Impact",
-                message:
-                    "Improved compliance scores and reduced workplace incidents by 12%.",
-                show: true,
-            },
-        },
-        footer: {
-            actions: [
                 {
-                    label: "View Report",
+                    label: "View Missing Logs",
                     variant: "outline",
                     onClick: () => {
-                        console.log("View Report clicked");
-                    },
-                },
-                {
-                    label: "Expand Program",
-                    variant: "primary",
-                    onClick: () => {
-                        console.log("Expand Program clicked");
+                        console.log("View Missing Logs clicked");
                     },
                 },
             ],
         },
     },
     {
-        id: "attendance-drop-006",
+        id: "employee-missing-logs-013",
+        category: "payroll",
         header: {
-            title: "Team Alpha Attendance",
-            timestamp: "6h ago",
+            title: "Payroll & Compliance Health",
+            timestamp: "1h ago",
             priority: {
                 label: "Medium priority",
                 variant: "medium",
@@ -305,41 +540,189 @@ export const actionFeedData: ActionFeedItem[] = [
         body: {
             mainAlert: {
                 message:
-                    "Team Alpha attendance dropped to 88%, below the 92% target.",
+                    "You have missing clock in/out logs for 3 days this pay period.",
             },
             comparison: {
-                value: "4% vs target",
+                value: "3 days missing",
                 direction: "down",
                 show: true,
             },
             aiGenerated: {
                 message:
-                    "Recent absences concentrated in morning shifts. Consider flexible start times.",
+                    "Missing logs need to be resolved to ensure accurate payroll processing. Submit Certificate of Attendance to correct records.",
                 show: true,
             },
             impact: {
                 label: "Impact",
                 message:
-                    "Morning shift coverage may be insufficient for the next 2 weeks.",
+                    "Your payroll may be affected if logs are not corrected before the cutoff date.",
                 show: true,
             },
         },
         footer: {
             actions: [
                 {
-                    label: "View Team Details",
+                    label: "Apply COA Agent",
                     variant: "outline",
-                    onClick: () => {
-                        console.log("View Team Details clicked");
-                    },
+                    borderColor: "purple",
+                    chatAction: "coa", // This will trigger the chatbot with COA application message
+                    useSimulation: true, // Use simulated flow to show AI agent applying COA
                 },
                 {
-                    label: "Adjust Schedule",
+                    label: "View Missing Days",
+                    variant: "outline",
+                    onClick: () => {
+                        console.log("View Missing Days clicked");
+                    },
+                },
+            ],
+        },
+    },
+    {
+        id: "vacation-leave-requests-014",
+        category: "payroll",
+        header: {
+            title: "Payroll & Compliance Health",
+            timestamp: "4h ago",
+            priority: {
+                label: "Medium priority",
+                variant: "medium",
+            },
+        },
+        body: {
+            mainAlert: {
+                message:
+                    "8 employees have requested vacation leave pending approval.",
+            },
+            comparison: {
+                value: "8 pending requests",
+                direction: "up",
+                show: true,
+            },
+            aiGenerated: {
+                message:
+                    "Review leave requests to ensure adequate coverage during requested periods. Some requests overlap with peak hours.",
+                show: true,
+            },
+            impact: {
+                label: "Impact",
+                message:
+                    "Approved leaves may require schedule adjustments to maintain staffing levels.",
+                show: true,
+            },
+        },
+        footer: {
+            actions: [
+                {
+                    label: "Approve Leaves",
                     variant: "outline",
                     borderColor: "purple",
                     onClick: () => {
-                        console.log("Adjust Schedule clicked");
+                        console.log("Approve Leaves clicked");
                     },
+                },
+                {
+                    label: "View Requests",
+                    variant: "outline",
+                    onClick: () => {
+                        console.log("View Requests clicked");
+                    },
+                },
+            ],
+        },
+    },
+    {
+        id: "run-payroll-all-companies-015",
+        category: "payroll",
+        header: {
+            title: "Payroll & Compliance Health",
+            timestamp: "1d ago",
+            priority: {
+                label: "High priority",
+                variant: "high",
+            },
+        },
+        body: {
+            mainAlert: {
+                message:
+                    "Payroll processing is due for all companies. Run payroll to process employee payments for the current pay period.",
+            },
+            comparison: {
+                value: "Due today",
+                direction: "up",
+                show: true,
+            },
+            aiGenerated: {
+                message:
+                    "All attendance logs have been verified and approved. Payroll is ready to be processed for 12 companies.",
+                show: true,
+            },
+            impact: {
+                label: "Impact",
+                message:
+                    "Delayed payroll processing may affect employee payments and compliance deadlines.",
+                show: true,
+            },
+        },
+        footer: {
+            actions: [
+                {
+                    label: "Run Payroll",
+                    variant: "primary",
+                    chatAction: "run-payroll",
+                    useSimulation: true,
+                },
+            ],
+        },
+    },
+    {
+        id: "payroll-anomalies-detected-016",
+        category: "payroll",
+        header: {
+            title: "Payroll & Compliance Health",
+            timestamp: "3h ago",
+            priority: {
+                label: "High priority",
+                variant: "high",
+            },
+        },
+        body: {
+            mainAlert: {
+                message:
+                    "I found anomalies in 3 payroll runs that increased payroll costs or have unexpected bonuses.",
+            },
+            comparison: {
+                value: "3 anomalies",
+                direction: "up",
+                show: true,
+            },
+            aiGenerated: {
+                message:
+                    "Anomalies detected: Company A (+15% payroll), Company B (unexpected bonuses), Company C (+8% overtime costs). Review and fix before finalizing payroll.",
+                show: true,
+            },
+            impact: {
+                label: "Impact",
+                message:
+                    "Unresolved anomalies may result in incorrect payments and compliance issues.",
+                show: true,
+            },
+        },
+        footer: {
+            actions: [
+                {
+                    label: "See Anomalies",
+                    variant: "outline",
+                    onClick: () => {
+                        console.log("See Anomalies clicked");
+                    },
+                },
+                {
+                    label: "Auto-Fix Anomalies",
+                    variant: "outline",
+                    borderColor: "purple",
+                    chatAction: "auto-fix-anomalies",
+                    useSimulation: true,
                 },
             ],
         },
