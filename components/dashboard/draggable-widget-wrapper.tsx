@@ -161,6 +161,8 @@ export function DraggableWidgetWrapper({
         <>
             <div
                 ref={widgetRef}
+                data-widget-instance-id={layout.id}
+                data-widget-id={layout.widgetId}
                 className={`relative w-full h-auto transition-all ${
                     isDragging ? "opacity-50 scale-[0.98]" : ""
                 } ${
