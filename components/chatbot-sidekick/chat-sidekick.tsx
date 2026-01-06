@@ -1,8 +1,17 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { PaperPlaneRight, Paperclip, X, ArrowsOut, Stop, CaretDown, ArrowRight } from "phosphor-react";
+import {
+    PaperPlaneRight,
+    Paperclip,
+    X,
+    ArrowsOut,
+    Stop,
+    CaretDown,
+    ArrowRight,
+} from "phosphor-react";
 import ReactMarkdown from "react-markdown";
+import Image from "next/image";
 import { useChatWidget } from "@/contexts/chat-widget-context";
 import { WidgetChip } from "./widget-chip";
 import { InlineChatInput } from "./inline-chat-input";
@@ -54,10 +63,10 @@ function LoadingIndicator() {
 }
 
 // AI Message Component with Typing Animation
-function AIMessage({ 
-    message, 
-    onTypingComplete 
-}: { 
+function AIMessage({
+    message,
+    onTypingComplete,
+}: {
     message: Message;
     onTypingComplete?: () => void;
 }) {
@@ -117,9 +126,11 @@ function AIMessage({
             <div className="flex flex-col gap-2 items-start max-w-[768px] relative shrink-0 w-full">
                 {/* AI Logo */}
                 <div className="relative shrink-0 w-8 h-8 mb-1">
-                    <img
+                    <Image
                         src="/images/Sidekick_Logo.png"
                         alt="Sidekick Logo"
+                        width={32}
+                        height={32}
                         className="w-full h-full object-contain"
                     />
                 </div>
@@ -369,295 +380,343 @@ export function ChatSidekick({
     // Widget drop is handled by InlineChatInput component
 
     // Extract widget content from DOM
-    const extractWidgetContent = useCallback((widgetLayout: WidgetLayout): string => {
-        try {
-            // Find widget element by data attribute
-            const widgetElement = document.querySelector(
-                `[data-widget-instance-id="${widgetLayout.id}"]`
-            );
-
-            if (!widgetElement) {
-                return "Widget not found in DOM";
-            }
-
-            // Extract text content from the widget
-            const textContent: string[] = [];
-
-            // Get all text nodes, excluding script and style elements
-            const walker = document.createTreeWalker(
-                widgetElement,
-                NodeFilter.SHOW_TEXT,
-                {
-                    acceptNode: (node) => {
-                        const parent = node.parentElement;
-                        if (!parent) return NodeFilter.FILTER_REJECT;
-                        
-                        // Skip script, style, and hidden elements
-                        if (
-                            parent.tagName === "SCRIPT" ||
-                            parent.tagName === "STYLE" ||
-                            parent.closest("[hidden]") ||
-                            parent.closest("[style*='display: none']")
-                        ) {
-                            return NodeFilter.FILTER_REJECT;
-                        }
-                        
-                        // Only include visible text
-                        const text = node.textContent?.trim() || "";
-                        if (text.length === 0) return NodeFilter.FILTER_REJECT;
-                        
-                        return NodeFilter.FILTER_ACCEPT;
-                    },
-                }
-            );
-
-            const textNodes: string[] = [];
-            let node;
-            while ((node = walker.nextNode())) {
-                const text = node.textContent?.trim();
-                if (text && text.length > 0) {
-                    textNodes.push(text);
-                }
-            }
-
-            // Also extract specific value elements (numbers, percentages, etc.)
-            const valueSelectors = [
-                '[class*="value"]',
-                '[class*="metric"]',
-                '[class*="kpi"]',
-                '[class*="number"]',
-                '[class*="percentage"]',
-                '[class*="count"]',
-            ];
-
-            const extractedValues: string[] = [];
-            valueSelectors.forEach((selector) => {
-                const elements = widgetElement.querySelectorAll(selector);
-                elements.forEach((el) => {
-                    const text = el.textContent?.trim();
-                    if (text && text.length > 0 && text.length < 100) {
-                        extractedValues.push(text);
-                    }
-                });
-            });
-
-            // Combine and deduplicate
-            const allContent = [...textNodes, ...extractedValues];
-            const uniqueContent = Array.from(new Set(allContent));
-
-            // Filter out very short or common UI text
-            const filteredContent = uniqueContent.filter((text) => {
-                return (
-                    text.length > 1 &&
-                    !text.match(/^(and|or|the|a|an|in|on|at|to|for|of|with|by)$/i) &&
-                    !text.match(/^[^\w\s]+$/) // Not just punctuation
+    const extractWidgetContent = useCallback(
+        (widgetLayout: WidgetLayout): string => {
+            try {
+                // Find widget element by data attribute
+                const widgetElement = document.querySelector(
+                    `[data-widget-instance-id="${widgetLayout.id}"]`
                 );
-            });
 
-            // Limit to reasonable size and format
-            const content = filteredContent.slice(0, 50).join(" | ");
-            return content || "No extractable content found";
-        } catch (error) {
-            console.error("Error extracting widget content:", error);
-            return "Error extracting widget content";
-        }
-    }, []);
+                if (!widgetElement) {
+                    return "Widget not found in DOM";
+                }
+
+                // Extract text content from the widget
+                const textContent: string[] = [];
+
+                // Get all text nodes, excluding script and style elements
+                const walker = document.createTreeWalker(
+                    widgetElement,
+                    NodeFilter.SHOW_TEXT,
+                    {
+                        acceptNode: (node) => {
+                            const parent = node.parentElement;
+                            if (!parent) return NodeFilter.FILTER_REJECT;
+
+                            // Skip script, style, and hidden elements
+                            if (
+                                parent.tagName === "SCRIPT" ||
+                                parent.tagName === "STYLE" ||
+                                parent.closest("[hidden]") ||
+                                parent.closest("[style*='display: none']")
+                            ) {
+                                return NodeFilter.FILTER_REJECT;
+                            }
+
+                            // Only include visible text
+                            const text = node.textContent?.trim() || "";
+                            if (text.length === 0)
+                                return NodeFilter.FILTER_REJECT;
+
+                            return NodeFilter.FILTER_ACCEPT;
+                        },
+                    }
+                );
+
+                const textNodes: string[] = [];
+                let node;
+                while ((node = walker.nextNode())) {
+                    const text = node.textContent?.trim();
+                    if (text && text.length > 0) {
+                        textNodes.push(text);
+                    }
+                }
+
+                // Also extract specific value elements (numbers, percentages, etc.)
+                const valueSelectors = [
+                    '[class*="value"]',
+                    '[class*="metric"]',
+                    '[class*="kpi"]',
+                    '[class*="number"]',
+                    '[class*="percentage"]',
+                    '[class*="count"]',
+                ];
+
+                const extractedValues: string[] = [];
+                valueSelectors.forEach((selector) => {
+                    const elements = widgetElement.querySelectorAll(selector);
+                    elements.forEach((el) => {
+                        const text = el.textContent?.trim();
+                        if (text && text.length > 0 && text.length < 100) {
+                            extractedValues.push(text);
+                        }
+                    });
+                });
+
+                // Combine and deduplicate
+                const allContent = [...textNodes, ...extractedValues];
+                const uniqueContent = Array.from(new Set(allContent));
+
+                // Filter out very short or common UI text
+                const filteredContent = uniqueContent.filter((text) => {
+                    return (
+                        text.length > 1 &&
+                        !text.match(
+                            /^(and|or|the|a|an|in|on|at|to|for|of|with|by)$/i
+                        ) &&
+                        !text.match(/^[^\w\s]+$/) // Not just punctuation
+                    );
+                });
+
+                // Limit to reasonable size and format
+                const content = filteredContent.slice(0, 50).join(" | ");
+                return content || "No extractable content found";
+            } catch (error) {
+                console.error("Error extracting widget content:", error);
+                return "Error extracting widget content";
+            }
+        },
+        []
+    );
 
     // Send message to AI
-    const sendMessage = useCallback(async (content: {
-        text: string;
-        chips: WidgetLayout[];
-    }) => {
-        if (!content.text.trim() && content.chips.length === 0) return;
+    const sendMessage = useCallback(
+        async (content: { text: string; chips: WidgetLayout[] }) => {
+            if (!content.text.trim() && content.chips.length === 0) return;
 
-        // Build conversation history before adding the new user message
-        const conversationHistory = messages.map((msg) => ({
-            role: msg.role,
-            content: msg.content,
-        }));
+            // Build conversation history before adding the new user message
+            const conversationHistory = messages.map((msg) => ({
+                role: msg.role,
+                content: msg.content,
+            }));
 
-        const currentMessage = content.text.trim();
-        setIsLoading(true);
-        setIsGenerating(true);
+            const currentMessage = content.text.trim();
+            setIsLoading(true);
+            setIsGenerating(true);
 
-        // Add user message to chat body when we start processing (not when queued)
-        const userMessage: Message = {
-            id: Date.now().toString(),
-            role: "user",
-            content: content.text.trim(),
-            widgetChips: content.chips.length > 0 ? content.chips : undefined,
-        };
-
-        setMessages((prev) => [...prev, userMessage]);
-
-        // Create new AbortController for this request
-        const abortController = new AbortController();
-        abortControllerRef.current = abortController;
-
-        // Call the onSendMessage callback
-        if (onSendMessage) {
-            onSendMessage(userMessage.content);
-        }
-
-        try {
-            // Build widget context from chips with extracted content
-            const widgetContext = content.chips.map((chip) => {
-                const widgetMetadata = getWidgetById(chip.widgetId);
-                const extractedContent = extractWidgetContent(chip);
-                
-                return {
-                    widgetId: chip.widgetId,
-                    name: widgetMetadata?.name || chip.widgetId,
-                    description: widgetMetadata?.description || "",
-                    category: widgetMetadata?.category || "",
-                    dataSource: widgetMetadata?.dataSource || [],
-                    content: extractedContent, // Add extracted DOM content
-                };
-            });
-
-            // Clean message text - remove widget placeholders when we have widget context
-            let cleanedMessage = currentMessage;
-            if (widgetContext.length > 0) {
-                // Remove [WIDGET:...] placeholders from the message text
-                cleanedMessage = cleanedMessage.replace(
-                    /\[WIDGET:[^\]]+\]/g,
-                    ""
-                ).trim();
-            }
-
-            // Enhance message with widget context
-            let enhancedMessage = cleanedMessage;
-            if (widgetContext.length > 0) {
-                const widgetContextText = widgetContext
-                    .map(
-                        (widget) =>
-                            `Widget: ${widget.name} (${widget.widgetId})\nDescription: ${widget.description}\nCategory: ${widget.category}${widget.dataSource.length > 0 ? `\nData Source: ${widget.dataSource.join(", ")}` : ""}${widget.content ? `\nContent: ${widget.content}` : ""}`
-                    )
-                    .join("\n\n");
-                enhancedMessage = cleanedMessage
-                    ? `${cleanedMessage}\n\nReferenced Widgets:\n${widgetContextText}`
-                    : `Referenced Widgets:\n${widgetContextText}`;
-            }
-
-            // Call Gemini API with abort signal
-            const response = await fetch("/api/chat", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    message: enhancedMessage,
-                    conversationHistory,
-                    widgetContext: widgetContext.length > 0 ? widgetContext : undefined,
-                }),
-                signal: abortController.signal,
-            });
-
-            // Check if request was aborted
-            if (abortController.signal.aborted) {
-                return;
-            }
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                const errorMessage = errorData.error || `Failed to get response from AI (${response.status})`;
-                
-                // Check if it's a quota/rate limit error
-                if (response.status === 429 || errorMessage.includes("quota") || errorMessage.includes("RESOURCE_EXHAUSTED") || errorMessage.includes("rate limit")) {
-                    throw new Error("Exceeded current quota");
-                }
-                
-                throw new Error(errorMessage);
-            }
-
-            const data = await response.json();
-
-            if (data.error) {
-                // Check if it's a quota/rate limit error
-                const errorMessage = data.error;
-                if (typeof errorMessage === "string" && (errorMessage.includes("quota") || errorMessage.includes("RESOURCE_EXHAUSTED") || errorMessage.includes("rate limit") || errorMessage.includes("429"))) {
-                    throw new Error("Exceeded current quota");
-                }
-                throw new Error(errorMessage);
-            }
-
-            const aiMessage: Message = {
-                id: (Date.now() + 1).toString(),
-                role: "ai",
-                content:
-                    data.message ||
-                    "I apologize, but I couldn't generate a response.",
+            // Add user message to chat body when we start processing (not when queued)
+            const userMessage: Message = {
+                id: Date.now().toString(),
+                role: "user",
+                content: content.text.trim(),
+                widgetChips:
+                    content.chips.length > 0 ? content.chips : undefined,
             };
 
-            // Track the last AI message for typing completion
-            lastAIMessageIdRef.current = aiMessage.id;
-            setMessages((prev) => [...prev, aiMessage]);
-            
-            // Keep isGenerating true - it will be set to false when typing completes
-            // Don't set it to false here, let the typing animation complete
-        } catch (error) {
-            // Don't show error if request was aborted
-            if (error instanceof Error && error.name === "AbortError") {
-                const stoppedMessage: Message = {
+            setMessages((prev) => [...prev, userMessage]);
+
+            // Create new AbortController for this request
+            const abortController = new AbortController();
+            abortControllerRef.current = abortController;
+
+            // Call the onSendMessage callback
+            if (onSendMessage) {
+                onSendMessage(userMessage.content);
+            }
+
+            try {
+                // Build widget context from chips with extracted content
+                const widgetContext = content.chips.map((chip) => {
+                    const widgetMetadata = getWidgetById(chip.widgetId);
+                    const extractedContent = extractWidgetContent(chip);
+
+                    return {
+                        widgetId: chip.widgetId,
+                        name: widgetMetadata?.name || chip.widgetId,
+                        description: widgetMetadata?.description || "",
+                        category: widgetMetadata?.category || "",
+                        dataSource: widgetMetadata?.dataSource || [],
+                        content: extractedContent, // Add extracted DOM content
+                    };
+                });
+
+                // Clean message text - remove widget placeholders when we have widget context
+                let cleanedMessage = currentMessage;
+                if (widgetContext.length > 0) {
+                    // Remove [WIDGET:...] placeholders from the message text
+                    cleanedMessage = cleanedMessage
+                        .replace(/\[WIDGET:[^\]]+\]/g, "")
+                        .trim();
+                }
+
+                // Enhance message with widget context
+                let enhancedMessage = cleanedMessage;
+                if (widgetContext.length > 0) {
+                    const widgetContextText = widgetContext
+                        .map(
+                            (widget) =>
+                                `Widget: ${widget.name} (${
+                                    widget.widgetId
+                                })\nDescription: ${
+                                    widget.description
+                                }\nCategory: ${widget.category}${
+                                    widget.dataSource.length > 0
+                                        ? `\nData Source: ${widget.dataSource.join(
+                                              ", "
+                                          )}`
+                                        : ""
+                                }${
+                                    widget.content
+                                        ? `\nContent: ${widget.content}`
+                                        : ""
+                                }`
+                        )
+                        .join("\n\n");
+                    enhancedMessage = cleanedMessage
+                        ? `${cleanedMessage}\n\nReferenced Widgets:\n${widgetContextText}`
+                        : `Referenced Widgets:\n${widgetContextText}`;
+                }
+
+                // Call Gemini API with abort signal
+                const response = await fetch("/api/chat", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        message: enhancedMessage,
+                        conversationHistory,
+                        widgetContext:
+                            widgetContext.length > 0
+                                ? widgetContext
+                                : undefined,
+                    }),
+                    signal: abortController.signal,
+                });
+
+                // Check if request was aborted
+                if (abortController.signal.aborted) {
+                    return;
+                }
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    const errorMessage =
+                        errorData.error ||
+                        `Failed to get response from AI (${response.status})`;
+
+                    // Check if it's a quota/rate limit error
+                    if (
+                        response.status === 429 ||
+                        errorMessage.includes("quota") ||
+                        errorMessage.includes("RESOURCE_EXHAUSTED") ||
+                        errorMessage.includes("rate limit")
+                    ) {
+                        throw new Error("Exceeded current quota");
+                    }
+
+                    throw new Error(errorMessage);
+                }
+
+                const data = await response.json();
+
+                if (data.error) {
+                    // Check if it's a quota/rate limit error
+                    const errorMessage = data.error;
+                    if (
+                        typeof errorMessage === "string" &&
+                        (errorMessage.includes("quota") ||
+                            errorMessage.includes("RESOURCE_EXHAUSTED") ||
+                            errorMessage.includes("rate limit") ||
+                            errorMessage.includes("429"))
+                    ) {
+                        throw new Error("Exceeded current quota");
+                    }
+                    throw new Error(errorMessage);
+                }
+
+                const aiMessage: Message = {
                     id: (Date.now() + 1).toString(),
                     role: "ai",
-                    content: "Generation stopped.",
+                    content:
+                        data.message ||
+                        "I apologize, but I couldn't generate a response.",
                 };
-                lastAIMessageIdRef.current = stoppedMessage.id;
-                setMessages((prev) => [...prev, stoppedMessage]);
-                return;
-            }
 
-            console.error("Error sending message:", error);
-            
-            // Simplify error message for quota/rate limit errors
-            let displayError = "I'm sorry, I encountered an error. Please try again later.";
-            if (error instanceof Error) {
-                const errorMsg = error.message;
-                // Check if it's a quota/rate limit error
-                if (errorMsg.includes("quota") || errorMsg.includes("RESOURCE_EXHAUSTED") || errorMsg.includes("rate limit") || errorMsg.includes("429") || errorMsg === "Exceeded current quota") {
-                    displayError = "Exceeded current quota";
-                } else {
-                    displayError = errorMsg;
+                // Track the last AI message for typing completion
+                lastAIMessageIdRef.current = aiMessage.id;
+                setMessages((prev) => [...prev, aiMessage]);
+
+                // Keep isGenerating true - it will be set to false when typing completes
+                // Don't set it to false here, let the typing animation complete
+            } catch (error) {
+                // Don't show error if request was aborted
+                if (error instanceof Error && error.name === "AbortError") {
+                    const stoppedMessage: Message = {
+                        id: (Date.now() + 1).toString(),
+                        role: "ai",
+                        content: "Generation stopped.",
+                    };
+                    lastAIMessageIdRef.current = stoppedMessage.id;
+                    setMessages((prev) => [...prev, stoppedMessage]);
+                    return;
                 }
+
+                console.error("Error sending message:", error);
+
+                // Simplify error message for quota/rate limit errors
+                let displayError =
+                    "I'm sorry, I encountered an error. Please try again later.";
+                if (error instanceof Error) {
+                    const errorMsg = error.message;
+                    // Check if it's a quota/rate limit error
+                    if (
+                        errorMsg.includes("quota") ||
+                        errorMsg.includes("RESOURCE_EXHAUSTED") ||
+                        errorMsg.includes("rate limit") ||
+                        errorMsg.includes("429") ||
+                        errorMsg === "Exceeded current quota"
+                    ) {
+                        displayError = "Exceeded current quota";
+                    } else {
+                        displayError = errorMsg;
+                    }
+                }
+
+                const errorMessage: Message = {
+                    id: (Date.now() + 1).toString(),
+                    role: "ai",
+                    content: displayError,
+                };
+                lastAIMessageIdRef.current = errorMessage.id;
+                setMessages((prev) => [...prev, errorMessage]);
+            } finally {
+                setIsLoading(false);
+                // Don't set isGenerating to false here - let it stay true until typing completes
+                // isGenerating will be set to false by the onTypingComplete callback
+                abortControllerRef.current = null;
             }
-            
-            const errorMessage: Message = {
-                id: (Date.now() + 1).toString(),
-                role: "ai",
-                content: displayError,
-            };
-            lastAIMessageIdRef.current = errorMessage.id;
-            setMessages((prev) => [...prev, errorMessage]);
-        } finally {
-            setIsLoading(false);
-            // Don't set isGenerating to false here - let it stay true until typing completes
-            // isGenerating will be set to false by the onTypingComplete callback
-            abortControllerRef.current = null;
-        }
-    }, [messages, onSendMessage, extractWidgetContent]);
+        },
+        [messages, onSendMessage, extractWidgetContent]
+    );
 
     // Process queue when generation completes (after typing animation finishes)
     useEffect(() => {
         // Only process if we're not generating, not loading, have queued messages, and not already processing
-        if (!isGenerating && !isLoading && messageQueue.length > 0 && !isProcessingQueueRef.current) {
+        if (
+            !isGenerating &&
+            !isLoading &&
+            messageQueue.length > 0 &&
+            !isProcessingQueueRef.current
+        ) {
             isProcessingQueueRef.current = true;
-            
+
             // Get the first message from current queue state
             const nextMessage = messageQueue[0];
-            
+
             // Remove from queue immediately (updates UI)
             setMessageQueue((prev) => prev.slice(1));
-            
+
             // Send the message
             sendMessage(nextMessage);
-            
+
             // Reset processing flag after delay to allow next message to process
             setTimeout(() => {
                 isProcessingQueueRef.current = false;
             }, 500);
         }
-    }, [isGenerating, isLoading, messageQueue.length, sendMessage]);
+    }, [isGenerating, isLoading, messageQueue, sendMessage]);
 
     // Handle custom drag and drop events
     useEffect(() => {
@@ -719,15 +778,20 @@ export function ChatSidekick({
         lastAIMessageIdRef.current = null;
     };
 
-
     // Get preview text for queued message
     const getQueueItemPreview = (item: QueuedMessage): string => {
         const textPreview = item.text.trim();
         const chipCount = item.chips.length;
         if (textPreview) {
-            return chipCount > 0 ? `${textPreview} (+${chipCount} widget${chipCount > 1 ? "s" : ""})` : textPreview;
+            return chipCount > 0
+                ? `${textPreview} (+${chipCount} widget${
+                      chipCount > 1 ? "s" : ""
+                  })`
+                : textPreview;
         }
-        return chipCount > 0 ? `${chipCount} widget${chipCount > 1 ? "s" : ""}` : "Empty message";
+        return chipCount > 0
+            ? `${chipCount} widget${chipCount > 1 ? "s" : ""}`
+            : "Empty message";
     };
 
     return (
@@ -770,9 +834,11 @@ export function ChatSidekick({
                     <div className="flex flex-col gap-6 items-center justify-center flex-1 w-full">
                         {/* Logo */}
                         <div className="relative shrink-0 w-10 h-10">
-                            <img
+                            <Image
                                 src="/images/Sidekick_Logo.png"
                                 alt="Sidekick Logo"
+                                width={40}
+                                height={40}
                                 className="w-full h-full object-contain"
                             />
                         </div>
@@ -801,11 +867,12 @@ export function ChatSidekick({
                                 {msg.role === "user" ? (
                                     <UserMessage message={msg} />
                                 ) : (
-                                    <AIMessage 
-                                        message={msg} 
+                                    <AIMessage
+                                        message={msg}
                                         onTypingComplete={
-                                            msg.id === lastAIMessageIdRef.current 
-                                                ? handleTypingComplete 
+                                            msg.id ===
+                                            lastAIMessageIdRef.current
+                                                ? handleTypingComplete
                                                 : undefined
                                         }
                                     />
@@ -850,7 +917,10 @@ export function ChatSidekick({
                         <div className="px-4 pb-2 space-y-1 max-h-[200px] overflow-y-auto">
                             {messageQueue.map((item, index) => (
                                 <div
-                                    key={`queue-${index}-${item.text.substring(0, 10)}`}
+                                    key={`queue-${index}-${item.text.substring(
+                                        0,
+                                        10
+                                    )}`}
                                     className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 group"
                                 >
                                     <div className="flex items-center justify-center w-5 h-5 rounded-full border border-[#d9dede] shrink-0 text-xs font-medium text-[#5d6c6b]">
@@ -875,19 +945,12 @@ export function ChatSidekick({
                                 <span className="flex-1 text-sm text-[#262b2b]">
                                     Generating...
                                 </span>
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={handleStop}
-                                        className="px-3 py-1 text-sm font-medium text-[#262b2b] hover:bg-gray-100 rounded transition-colors"
-                                    >
-                                        Stop
-                                    </button>
-                                    <button
-                                        className="px-3 py-1 text-sm font-medium text-white bg-[#158039] hover:bg-[#158039]/90 rounded transition-colors"
-                                    >
-                                        Review
-                                    </button>
-                                </div>
+                                <button
+                                    onClick={handleStop}
+                                    className="px-3 py-1 text-sm font-medium text-[#262b2b] hover:bg-gray-100 rounded transition-colors"
+                                >
+                                    Stop
+                                </button>
                             </div>
                         </div>
                     )}
@@ -1019,11 +1082,14 @@ export function ChatSidekick({
 
             {/* Layer 2: Texture (middle) */}
             <div className="absolute inset-0 z-4 pointer-events-none opacity-40">
-                <img
-                    src="/images/Texture_BG_Pattern.png"
-                    alt=""
-                    className="w-full h-full object-cover"
-                />
+                <div className="relative w-full h-full">
+                    <Image
+                        src="/images/Texture_BG_Pattern.png"
+                        alt=""
+                        fill
+                        className="object-cover"
+                    />
+                </div>
             </div>
         </div>
     );
