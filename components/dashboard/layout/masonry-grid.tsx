@@ -33,7 +33,9 @@ export function MasonryGrid({ children, className = "", style }: MasonryGridProp
  * Prevents widgets from breaking across columns
  * Ensures uniform 24px spacing both horizontally and vertically
  */
-export const masonryItemStyle: CSSProperties = {
+export const masonryItemStyle: CSSProperties & {
+    WebkitColumnBreakInside?: string;
+} = {
     breakInside: "avoid",
     pageBreakInside: "avoid",
     WebkitColumnBreakInside: "avoid",
