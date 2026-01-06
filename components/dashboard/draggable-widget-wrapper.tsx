@@ -24,14 +24,16 @@ export function DraggableWidgetWrapper({
     const widgetRef = useRef<HTMLDivElement>(null);
     const ghostRef = useRef<HTMLDivElement>(null);
     const { setDraggingWidget } = useChatWidget();
-    
+
     // Check if chat is open - only allow dragging when chat is open
     const { isOpen: isChatOpen } = useChatSidekick();
 
     // Check if dialog is open
     useEffect(() => {
         const checkDialog = () => {
-            const dialogOverlay = document.querySelector('[data-slot="dialog-overlay"][data-state="open"]');
+            const dialogOverlay = document.querySelector(
+                '[data-slot="dialog-overlay"][data-state="open"]'
+            );
             setIsDialogOpen(!!dialogOverlay);
         };
 
@@ -44,7 +46,7 @@ export function DraggableWidgetWrapper({
             childList: true,
             subtree: true,
             attributes: true,
-            attributeFilter: ['data-state'],
+            attributeFilter: ["data-state"],
         });
 
         return () => observer.disconnect();
@@ -60,7 +62,9 @@ export function DraggableWidgetWrapper({
             }
 
             // Check if over chat drop zone and update drag over state
-            const chatDropZone = document.querySelector('[data-chat-drop-zone]');
+            const chatDropZone = document.querySelector(
+                "[data-chat-drop-zone]"
+            );
             if (chatDropZone) {
                 const rect = chatDropZone.getBoundingClientRect();
                 const isOverDropZone =
@@ -81,7 +85,9 @@ export function DraggableWidgetWrapper({
             setIsDragging(false);
 
             // Check if dropped over chat drop zone
-            const chatDropZone = document.querySelector('[data-chat-drop-zone]');
+            const chatDropZone = document.querySelector(
+                "[data-chat-drop-zone]"
+            );
             if (chatDropZone) {
                 const rect = chatDropZone.getBoundingClientRect();
                 const isOverDropZone =
@@ -139,7 +145,7 @@ export function DraggableWidgetWrapper({
         if (ghostRef.current && widgetRef.current) {
             const clone = widgetRef.current.cloneNode(true) as HTMLElement;
             // Remove the grab handle from clone
-            const grabHandle = clone.querySelector('[data-grab-handle]');
+            const grabHandle = clone.querySelector("[data-grab-handle]");
             if (grabHandle) {
                 grabHandle.remove();
             }
@@ -157,10 +163,17 @@ export function DraggableWidgetWrapper({
                 ref={widgetRef}
                 className={`relative w-full h-auto transition-all ${
                     isDragging ? "opacity-50 scale-[0.98]" : ""
-                } ${isHovered && !disabled && !isDialogOpen && isChatOpen ? "cursor-grab" : ""} ${
-                    isDialogOpen ? "pointer-events-none" : ""
-                }`}
-                onMouseEnter={() => !disabled && !isDialogOpen && isChatOpen && setIsHovered(true)}
+                } ${
+                    isHovered && !disabled && !isDialogOpen && isChatOpen
+                        ? "cursor-grab"
+                        : ""
+                } ${isDialogOpen ? "pointer-events-none" : ""}`}
+                onMouseEnter={() =>
+                    !disabled &&
+                    !isDialogOpen &&
+                    isChatOpen &&
+                    setIsHovered(true)
+                }
                 onMouseLeave={() => setIsHovered(false)}
                 onMouseDown={handleMouseDown}
             >
@@ -182,10 +195,9 @@ export function DraggableWidgetWrapper({
             {/* Ghost element for dragging */}
             <div
                 ref={ghostRef}
-                className="fixed pointer-events-none z-[9999] opacity-75 blur-[2px] scale-95 shadow-2xl rounded-xl overflow-hidden"
+                className="fixed pointer-events-none z-9999 opacity-75 blur-[2px] scale-95 shadow-2xl rounded-xl overflow-hidden"
                 style={{ display: "none", maxWidth: "400px" }}
             />
         </>
     );
 }
-
