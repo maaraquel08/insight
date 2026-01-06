@@ -6,6 +6,9 @@ import { AttritionTrendChart } from "../widgets/attrition-trend-chart";
 import { LeaveTypesBreakdown } from "../widgets/leave-types-breakdown";
 import { AbsenteeismTrendChart } from "../widgets/absenteeism-trend-chart";
 import { TenureDemographics } from "../widgets/tenure-demographics";
+import { SupervisorPerformanceRanking } from "../widgets/supervisor-performance-ranking";
+import { AttritionByDepartment } from "../widgets/attrition-by-department";
+import { DepartureReason } from "../widgets/departure-reason";
 
 type WidgetComponentMap = {
     [key: string]: React.ComponentType<any>;
@@ -18,6 +21,9 @@ const widgetComponents: WidgetComponentMap = {
     "leave-types-breakdown": LeaveTypesBreakdown,
     "absenteeism-trend-chart": AbsenteeismTrendChart,
     "tenure-demographics": TenureDemographics,
+    "supervisor-performance-ranking": SupervisorPerformanceRanking,
+    "attrition-by-department": AttritionByDepartment,
+    "departure-reason": DepartureReason,
 };
 
 export function getWidgetComponent(

@@ -37,7 +37,7 @@ import { CSS } from "@dnd-kit/utilities";
 // @ts-ignore - JavaScript file
 import { getHeadcountTrendData } from "@/app/data/peopleHealthData";
 // @ts-ignore - JavaScript file
-import { getAttritionTrendData } from "@/app/data/peopleHealthData";
+import { getAttritionTrendData } from "@/app/data/attritionData";
 // @ts-ignore - JavaScript file
 import { getLeaveAbsenteeismData } from "@/app/data/peopleHealthData";
 

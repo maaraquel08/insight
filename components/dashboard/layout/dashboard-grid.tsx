@@ -26,6 +26,7 @@ import { WidgetWrapper } from "../edit-mode/widget-wrapper";
 import { DraggableWidgetWrapper } from "../draggable-widget-wrapper";
 import { getWidgetComponent } from "../edit-mode/widget-components";
 import type { WidgetLayout } from "@/types/dashboard";
+import { MasonryGrid, masonryItemStyle } from "./masonry-grid";
 
 interface SortableWidgetProps {
     layout: WidgetLayout;
@@ -96,20 +97,7 @@ export function DashboardGrid() {
         return [...config.widgets].sort((a, b) => a.order - b.order);
     }, [config.widgets]);
 
-    // Get density spacing - uniform gaps for masonry/unsplash-style layout
-    // Match main page gap-6 spacing
-    const gapClass = config.density === "Compact" ? "gap-2" : "gap-6";
-    const gapValue = config.density === "Compact" ? 0.5 : 1.5; // gap-2 = 0.5rem, gap-6 = 1.5rem
-
-    // Get widget width styles for masonry layout
-    // Uniform gaps, content-based heights, natural flow
-    // All widgets use 2-column layout with uniform gaps
-    const getWidgetWidth = (): { style: CSSProperties } => {
-        // For 2-column: calc(50% - gap/2) ensures uniform gaps
-        return {
-            style: { width: `calc(50% - ${gapValue / 2}rem)` },
-        };
-    };
+    // Use standardized masonry grid with 24px uniform gap
 
     const handleDragStart = (event: DragStartEvent) => {
         setActiveId(event.active.id as string);
@@ -141,17 +129,13 @@ export function DashboardGrid() {
     if (!isEditMode) {
         // Render without drag-and-drop when not in edit mode
         // But enable drag-to-chat functionality
-        // Flexbox masonry layout: uniform gaps, content-based heights, natural flow
+        // Masonry layout using CSS columns: uniform 24px gaps, content-based heights, natural flow
         return (
-            <div className={`flex flex-wrap ${gapClass} items-start`}>
+            <MasonryGrid>
                 {sortedWidgets.map((layout) => {
                     const WidgetComponent = getWidgetComponent(layout.widgetId);
-                    const widthProps = getWidgetWidth();
                     return (
-                        <div
-                            key={layout.id}
-                            style={{ ...widthProps.style, height: "auto" }}
-                        >
+                        <div key={layout.id} style={masonryItemStyle}>
                             <DraggableWidgetWrapper layout={layout}>
                             <WidgetWrapper layout={layout}>
                                 {WidgetComponent ? (
@@ -169,7 +153,7 @@ export function DashboardGrid() {
                         </div>
                     );
                 })}
-            </div>
+            </MasonryGrid>
         );
     }
 
@@ -180,27 +164,24 @@ export function DashboardGrid() {
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
         >
-            {/* Flexbox masonry layout: uniform gaps, content-based heights, natural flow */}
-            <div
-                className={`flex flex-wrap ${gapClass} items-start min-h-[400px]`}
-            >
+            {/* Masonry layout using CSS columns: uniform 24px gaps, content-based heights, natural flow */}
+            <MasonryGrid style={{ minHeight: "400px" }}>
                 <SortableContext
                     items={sortedWidgets.map((w) => w.id)}
                     strategy={rectSortingStrategy}
                 >
                     {sortedWidgets.map((layout) => {
-                        const widthProps = getWidgetWidth();
                         return (
                             <div
                                 key={layout.id}
-                                style={{ ...widthProps.style, height: "auto" }}
+                                style={masonryItemStyle}
                             >
                                 <SortableWidget layout={layout} />
                             </div>
                         );
                     })}
                 </SortableContext>
-            </div>
+            </MasonryGrid>
             <DragOverlay>
                 {activeId
                     ? (() => {
@@ -212,11 +193,13 @@ export function DashboardGrid() {
                           const WidgetComponent = getWidgetComponent(
                               activeWidget.widgetId
                           );
-                          const widthProps = getWidgetWidth();
 
                           return (
                               <div
-                                  style={{ ...widthProps.style, opacity: 0.9 }}
+                                  style={{ 
+                                      width: "calc(50% - 0.75rem)", 
+                                      opacity: 0.9 
+                                  }}
                               >
                                   <div className="bg-white rounded-xl border-2 border-[#158039] shadow-lg">
                                       {WidgetComponent ? (

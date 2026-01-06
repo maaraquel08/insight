@@ -8,4 +8,7 @@ export { LeaveTypesBreakdown } from "./leave-types-breakdown";
 export { AbsenteeismTrendChart } from "./absenteeism-trend-chart";
 export { TenureDemographics } from "./tenure-demographics";
 export { MetricCard } from "./metric-card";
+export { SupervisorPerformanceRanking } from "./supervisor-performance-ranking";
+export { AttritionByDepartment } from "./attrition-by-department";
+export { DepartureReason } from "./departure-reason";
 

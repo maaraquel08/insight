@@ -23,10 +23,10 @@ export function PageHeader({
 }: PageHeaderProps) {
     const router = useRouter();
     const pathname = usePathname();
-    const isMainPage = pathname === "/";
+    const isMainPage = pathname === "/" || pathname === "/reports-hub";
 
     const handleBack = () => {
-        router.push("/");
+        router.push("/reports-hub");
     };
 
     return (

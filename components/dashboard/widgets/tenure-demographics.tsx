@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { Users } from "lucide-react";
 import type { ApexOptions } from "apexcharts";
 // @ts-ignore - JavaScript file
-import { getTenureDemographicsData } from "@/app/data/peopleHealthData";
+import { getTenureDemographicsData } from "@/app/data/attritionData";
 import {
     Select,
     SelectContent,
@@ -33,7 +33,29 @@ interface TenureDemographicsData {
             categories: string[];
             values: number[];
         };
-        department: {
+        civilStatus: {
+            categories: string[];
+            values: number[];
+        };
+        location: {
+            categories: string[];
+            values: number[];
+        };
+    };
+    attritionRates: {
+        tenure: {
+            categories: string[];
+            values: number[];
+        };
+        age: {
+            categories: string[];
+            values: number[];
+        };
+        gender: {
+            categories: string[];
+            values: number[];
+        };
+        civilStatus: {
             categories: string[];
             values: number[];
         };
@@ -48,14 +70,14 @@ interface TenureDemographicsData {
 // Dynamically import ApexCharts to avoid SSR issues
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
-type ViewType = "tenure" | "age" | "gender" | "department" | "location";
+type ViewType = "tenure" | "age" | "gender" | "civilStatus" | "location";
 
 const distributionOptions = [
-    { label: "Tenure Distribution", value: "tenure" },
-    { label: "Age Distribution", value: "age" },
-    { label: "Gender Distribution", value: "gender" },
-    { label: "Department Distribution", value: "department" },
-    { label: "Location Distribution", value: "location" },
+    { label: "Attrition by Tenure", value: "tenure" },
+    { label: "Attrition by Age", value: "age" },
+    { label: "Attrition by Gender", value: "gender" },
+    { label: "Attrition by Civil Status", value: "civilStatus" },
+    { label: "Attrition by Location", value: "location" },
 ];
 
 export function TenureDemographics() {
@@ -80,7 +102,7 @@ export function TenureDemographics() {
             dataLabels: {
                 enabled: true,
                 formatter: (val: number) => {
-                    return val.toLocaleString();
+                    return `${val.toFixed(1)}%`;
                 },
             },
             plotOptions: {
@@ -107,7 +129,7 @@ export function TenureDemographics() {
                 theme: "light",
                 y: {
                     formatter: (value: number) => {
-                        return `${value.toLocaleString()} employees`;
+                        return `${value.toFixed(1)}%`;
                     },
                 },
             },
@@ -115,14 +137,14 @@ export function TenureDemographics() {
         []
     );
 
-    // Tenure Distribution Chart
+    // Tenure Attrition Chart
     const tenureChartOptions: ApexOptions = useMemo(
         () => ({
             ...baseBarChartOptions,
             colors: ["#8139ee"],
             xaxis: {
                 categories:
-                    demographicsData?.tenureDistribution.categories || [],
+                    demographicsData?.attritionRates.tenure.categories || [],
                 labels: {
                     style: {
                         colors: "#5d6c6b",
@@ -137,7 +159,7 @@ export function TenureDemographics() {
                         fontSize: "12px",
                     },
                     formatter: (value: number) => {
-                        return value.toLocaleString();
+                        return `${value.toFixed(1)}%`;
                     },
                 },
             },
@@ -148,20 +170,20 @@ export function TenureDemographics() {
     const tenureChartSeries = useMemo(
         () => [
             {
-                name: "Employees",
-                data: demographicsData?.tenureDistribution.values || [],
+                name: "Attrition Rate",
+                data: demographicsData?.attritionRates.tenure.values || [],
             },
         ],
         [demographicsData]
     );
 
-    // Age Distribution Chart
+    // Age Attrition Chart
     const ageChartOptions: ApexOptions = useMemo(
         () => ({
             ...baseBarChartOptions,
             colors: ["#17ad49"],
             xaxis: {
-                categories: demographicsData?.demographics.age.categories || [],
+                categories: demographicsData?.attritionRates.age.categories || [],
                 labels: {
                     style: {
                         colors: "#5d6c6b",
@@ -174,6 +196,9 @@ export function TenureDemographics() {
                     style: {
                         colors: "#5d6c6b",
                         fontSize: "11px",
+                    },
+                    formatter: (value: number) => {
+                        return `${value.toFixed(1)}%`;
                     },
                 },
             },
@@ -184,83 +209,35 @@ export function TenureDemographics() {
     const ageChartSeries = useMemo(
         () => [
             {
-                name: "Employees",
-                data: demographicsData?.demographics.age.values || [],
+                name: "Attrition Rate",
+                data: demographicsData?.attritionRates.age.values || [],
             },
         ],
         [demographicsData]
     );
 
-    // Gender Distribution Chart (Donut)
+    // Gender Attrition Chart (Bar chart instead of donut for consistency)
     const genderChartOptions: ApexOptions = useMemo(
         () => ({
-            chart: {
-                type: "donut",
-                toolbar: {
-                    show: false,
-                },
-            },
-            labels: demographicsData?.demographics.gender.categories || [],
-            colors: ["#8139ee", "#aa8bfa", "#f59e0b"],
-            legend: {
-                position: "bottom",
-                fontSize: "12px",
-                labels: {
-                    colors: "#5d6c6b",
-                },
-            },
-            dataLabels: {
-                enabled: true,
-                formatter: (val: number) => {
-                    return `${val.toFixed(1)}%`;
-                },
-            },
-            tooltip: {
-                theme: "light",
-                y: {
-                    formatter: (value: number) => {
-                        return `${value.toLocaleString()} employees`;
-                    },
-                },
-            },
-            plotOptions: {
-                pie: {
-                    donut: {
-                        size: "70%",
-                    },
-                },
-            },
-        }),
-        [demographicsData]
-    );
-
-    const genderChartSeries = useMemo(
-        () => demographicsData?.demographics.gender.values || [],
-        [demographicsData]
-    );
-
-    // Department Distribution Chart
-    const departmentChartOptions: ApexOptions = useMemo(
-        () => ({
             ...baseBarChartOptions,
-            colors: ["#06b6d4"],
+            colors: ["#8139ee"],
             xaxis: {
-                categories:
-                    demographicsData?.demographics.department.categories || [],
+                categories: demographicsData?.attritionRates.gender.categories || [],
                 labels: {
                     style: {
                         colors: "#5d6c6b",
-                        fontSize: "10px",
+                        fontSize: "12px",
                     },
-                    rotate: -45,
-                    rotateAlways: false,
                 },
             },
             yaxis: {
                 labels: {
                     style: {
                         colors: "#5d6c6b",
-                        fontSize: "11px",
+                        fontSize: "12px",
+                    },
+                    formatter: (value: number) => {
+                        return `${value.toFixed(1)}%`;
                     },
                 },
             },
@@ -268,24 +245,64 @@ export function TenureDemographics() {
         [demographicsData, baseBarChartOptions]
     );
 
-    const departmentChartSeries = useMemo(
+    const genderChartSeries = useMemo(
         () => [
             {
-                name: "Employees",
-                data: demographicsData?.demographics.department.values || [],
+                name: "Attrition Rate",
+                data: demographicsData?.attritionRates.gender.values || [],
             },
         ],
         [demographicsData]
     );
 
-    // Location Distribution Chart
+    // Civil Status Attrition Chart
+    const civilStatusChartOptions: ApexOptions = useMemo(
+        () => ({
+            ...baseBarChartOptions,
+            colors: ["#06b6d4"],
+            xaxis: {
+                categories:
+                    demographicsData?.attritionRates.civilStatus.categories || [],
+                labels: {
+                    style: {
+                        colors: "#5d6c6b",
+                        fontSize: "12px",
+                    },
+                },
+            },
+            yaxis: {
+                labels: {
+                    style: {
+                        colors: "#5d6c6b",
+                        fontSize: "12px",
+                    },
+                    formatter: (value: number) => {
+                        return `${value.toFixed(1)}%`;
+                    },
+                },
+            },
+        }),
+        [demographicsData, baseBarChartOptions]
+    );
+
+    const civilStatusChartSeries = useMemo(
+        () => [
+            {
+                name: "Attrition Rate",
+                data: demographicsData?.attritionRates.civilStatus.values || [],
+            },
+        ],
+        [demographicsData]
+    );
+
+    // Location Attrition Chart
     const locationChartOptions: ApexOptions = useMemo(
         () => ({
             ...baseBarChartOptions,
             colors: ["#f59e0b"],
             xaxis: {
                 categories:
-                    demographicsData?.demographics.location.categories || [],
+                    demographicsData?.attritionRates.location.categories || [],
                 labels: {
                     style: {
                         colors: "#5d6c6b",
@@ -298,6 +315,9 @@ export function TenureDemographics() {
                     style: {
                         colors: "#5d6c6b",
                         fontSize: "11px",
+                    },
+                    formatter: (value: number) => {
+                        return `${value.toFixed(1)}%`;
                     },
                 },
             },
@@ -308,8 +328,8 @@ export function TenureDemographics() {
     const locationChartSeries = useMemo(
         () => [
             {
-                name: "Employees",
-                data: demographicsData?.demographics.location.values || [],
+                name: "Attrition Rate",
+                data: demographicsData?.attritionRates.location.values || [],
             },
         ],
         [demographicsData]
@@ -356,15 +376,15 @@ export function TenureDemographics() {
                 };
             case "gender":
                 return {
-                    type: "donut" as const,
+                    type: "bar" as const,
                     options: genderChartOptions,
                     series: genderChartSeries,
                 };
-            case "department":
+            case "civilStatus":
                 return {
                     type: "bar" as const,
-                    options: departmentChartOptions,
-                    series: departmentChartSeries,
+                    options: civilStatusChartOptions,
+                    series: civilStatusChartSeries,
                 };
             case "location":
                 return {
@@ -393,12 +413,12 @@ export function TenureDemographics() {
                 <div className="flex gap-1 items-center mb-1">
                     <Users className="w-5 h-5 text-[#738482]" />
                     <h2 className="text-base font-medium text-[#262b2b]">
-                        Tenure & Demographics
+                        Attrition by Demographics
                     </h2>
                 </div>
                 <p className="text-sm text-[#5d6c6b]">
-                    Understand workforce maturity, diversity, and balance across
-                    tenure and demographics
+                    Analyze attrition rates across different demographic categories
+                    and tenure segments
                 </p>
             </div>
 
