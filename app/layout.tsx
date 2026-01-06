@@ -1,10 +1,20 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Rubik, Roboto_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { SideNav } from "@/components/side-nav";
 
-const inter = Inter({ subsets: ["latin"] });
+const rubik = Rubik({
+    subsets: ["latin"],
+    variable: "--font-rubik",
+    display: "swap",
+});
+
+const robotoMono = Roboto_Mono({
+    subsets: ["latin"],
+    variable: "--font-roboto-mono",
+    display: "swap",
+});
 
 export const metadata: Metadata = {
     title: "React Reports Builder",
@@ -18,7 +28,7 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en">
-            <body className={inter.className}>
+            <body className={`${rubik.variable} ${robotoMono.variable}`}>
                 <Providers>
                     <SideNav />
                     <div className="ml-16 mx-auto">{children}</div>

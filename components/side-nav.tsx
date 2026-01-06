@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { Home, FileText } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Home, FolderOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const imgLogo = "http://localhost:3845/assets/3debc2d69be008bbd1ba53aef1aa35bb42421beb.svg";
@@ -10,13 +11,15 @@ const imgAvatar = "http://localhost:3845/assets/25354e78e6039d227adaac9113b16282
 interface NavItemProps {
   icon: React.ReactNode;
   isActive?: boolean;
+  onClick?: () => void;
 }
 
-function NavItem({ icon, isActive }: NavItemProps) {
+function NavItem({ icon, isActive, onClick }: NavItemProps) {
   return (
     <div
+      onClick={onClick}
       className={cn(
-        "flex items-center justify-center p-2 rounded-lg transition-colors",
+        "flex items-center justify-center p-2 rounded-lg transition-colors cursor-pointer",
         isActive
           ? "bg-[#dcfce6] border-[1.5px] border-[#158039]"
           : "hover:bg-gray-100"
@@ -28,6 +31,12 @@ function NavItem({ icon, isActive }: NavItemProps) {
 }
 
 export function SideNav() {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const isHomeActive = pathname === "/";
+  const isReportsHubActive = pathname === "/reports-hub";
+
   return (
     <div className="fixed left-0 top-0 h-screen w-16 bg-white border-r border-[#d9dede] flex flex-col z-50">
       {/* Header with Logo */}
@@ -48,10 +57,15 @@ export function SideNav() {
 
       {/* Navigation Items */}
       <div className="flex-1 flex flex-col items-center gap-2 py-2 px-4">
-        <NavItem icon={<Home className="w-5 h-5 text-[#262b2b]" />} />
         <NavItem
-          icon={<FileText className="w-5 h-5 text-[#262b2b]" />}
-          isActive
+          icon={<Home className="w-5 h-5 text-[#262b2b]" />}
+          isActive={isHomeActive}
+          onClick={() => router.push("/")}
+        />
+        <NavItem
+          icon={<FolderOpen className="w-5 h-5 text-[#262b2b]" />}
+          isActive={isReportsHubActive}
+          onClick={() => router.push("/reports-hub")}
         />
       </div>
 

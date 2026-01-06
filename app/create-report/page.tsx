@@ -7,12 +7,14 @@ import { ReportTable } from "@/components/report-table";
 import { ColumnProvider } from "@/contexts/column-context";
 import { FilterProvider } from "@/contexts/filter-context";
 import { SortProvider } from "@/contexts/sort-context";
+import { ComputedValuesProvider } from "@/contexts/computed-values-context";
 
 export default function CreateReportPage() {
     return (
         <ColumnProvider>
             <FilterProvider>
                 <SortProvider>
+                    <ComputedValuesProvider>
                     <main className="bg-[#f1f2f3] h-screen flex flex-col overflow-hidden">
                         <div className="flex flex-col gap-4 p-10 flex-1 min-h-0">
                             <div className="flex flex-col gap-4 items-start max-w-[1320px] w-full mx-auto h-full">
@@ -41,6 +43,7 @@ export default function CreateReportPage() {
                             </div>
                         </div>
                     </main>
+                    </ComputedValuesProvider>
                 </SortProvider>
             </FilterProvider>
         </ColumnProvider>

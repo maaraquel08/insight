@@ -138,6 +138,14 @@ export function ColumnProvider({ children }: { children: ReactNode }) {
                     }
                     return order;
                 });
+
+                // If columnOrder already exists, add the new column to it
+                setColumnOrder((prevOrder) => {
+                    if (prevOrder && !prevOrder.includes(columnId)) {
+                        return [...prevOrder, columnId];
+                    }
+                    return prevOrder;
+                });
             }
 
             return {
@@ -206,8 +214,33 @@ export function ColumnProvider({ children }: { children: ReactNode }) {
                 return result;
             }
             
-            // If we have a custom order, use it
-            const result = Array.from(prevOrder);
+            // If we have a custom order, ensure all visible columns are included
+            // First, get the current visible columns
+            const visible: Column[] = [];
+            const addedColumns = new Set<string>();
+            
+            // Add columns from the existing order that are still selected
+            prevOrder.forEach((columnId) => {
+                const col = allColumns.find((c) => c.id === columnId);
+                if (col && (selectedColumns[col.id] ?? false)) {
+                    addColumnWithDependents(col, visible, addedColumns, selectedColumns);
+                }
+            });
+            
+            // Add any newly selected columns that aren't in the order yet
+            allColumns.forEach((col) => {
+                if (
+                    (selectedColumns[col.id] ?? false) &&
+                    !addedColumns.has(col.id) &&
+                    !col.isDependentOf
+                ) {
+                    addColumnWithDependents(col, visible, addedColumns, selectedColumns);
+                }
+            });
+            
+            // Use the visible columns order for reordering
+            const currentVisible = visible.map((col) => col.id);
+            const result = Array.from(currentVisible);
             const [removed] = result.splice(startIndex, 1);
             result.splice(endIndex, 0, removed);
             return result;
