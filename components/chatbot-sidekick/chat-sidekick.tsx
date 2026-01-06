@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { PaperPlaneRight, Paperclip, X, ArrowsOut } from "phosphor-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { PaperPlaneRight, Paperclip, X, ArrowsOut, Stop, CaretDown, ArrowRight } from "phosphor-react";
 import ReactMarkdown from "react-markdown";
 import { useChatWidget } from "@/contexts/chat-widget-context";
 import { WidgetChip } from "./widget-chip";
 import { InlineChatInput } from "./inline-chat-input";
 import type { WidgetLayout } from "@/types/dashboard";
+import { getWidgetById } from "@/lib/widget-registry";
 
 interface Message {
     id: string;
@@ -53,10 +54,17 @@ function LoadingIndicator() {
 }
 
 // AI Message Component with Typing Animation
-function AIMessage({ message }: { message: Message }) {
+function AIMessage({ 
+    message, 
+    onTypingComplete 
+}: { 
+    message: Message;
+    onTypingComplete?: () => void;
+}) {
     const [displayedContent, setDisplayedContent] = useState("");
     const [isTyping, setIsTyping] = useState(true);
     const messageIdRef = useRef(message.id);
+    const typingCompleteRef = useRef(false);
 
     useEffect(() => {
         // Reset when message ID changes (new message)
@@ -64,6 +72,7 @@ function AIMessage({ message }: { message: Message }) {
             messageIdRef.current = message.id;
             setDisplayedContent("");
             setIsTyping(true);
+            typingCompleteRef.current = false;
         }
 
         // Initialize with first character if empty
@@ -74,12 +83,16 @@ function AIMessage({ message }: { message: Message }) {
 
         // If already fully displayed, stop typing
         if (displayedContent.length >= message.content.length) {
-            setIsTyping(false);
+            if (!typingCompleteRef.current) {
+                setIsTyping(false);
+                typingCompleteRef.current = true;
+                onTypingComplete?.();
+            }
             return;
         }
 
         // Typing speed: adjust delay for faster/slower typing
-        const typingSpeed = 10; // milliseconds per character
+        const typingSpeed = 3; // milliseconds per character
         const timer = setTimeout(() => {
             const nextLength = Math.min(
                 displayedContent.length + 1,
@@ -88,12 +101,16 @@ function AIMessage({ message }: { message: Message }) {
             setDisplayedContent(message.content.slice(0, nextLength));
 
             if (nextLength >= message.content.length) {
-                setIsTyping(false);
+                if (!typingCompleteRef.current) {
+                    setIsTyping(false);
+                    typingCompleteRef.current = true;
+                    onTypingComplete?.();
+                }
             }
         }, typingSpeed);
 
         return () => clearTimeout(timer);
-    }, [message.content, message.id, displayedContent]);
+    }, [message.content, message.id, displayedContent, onTypingComplete]);
 
     return (
         <div className="flex gap-1.5 items-start w-full">
@@ -216,6 +233,11 @@ function UserMessage({ message }: { message: Message }) {
     );
 }
 
+interface QueuedMessage {
+    text: string;
+    chips: WidgetLayout[];
+}
+
 export function ChatSidekick({
     onClose,
     onMaximize,
@@ -225,14 +247,20 @@ export function ChatSidekick({
 }: ChatSidekickProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [messageQueue, setMessageQueue] = useState<QueuedMessage[]>([]);
+    const [isQueueExpanded, setIsQueueExpanded] = useState(true);
     const [isFocused, setIsFocused] = useState(false);
     const [hasContent, setHasContent] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const dropZoneRef = useRef<HTMLDivElement>(null);
     const sendButtonRef = useRef<{ triggerSend: () => void }>(null);
+    const abortControllerRef = useRef<AbortController | null>(null);
     const { isDragOver, setIsDragOver } = useChatWidget();
     const simulatedFlowRef = useRef(simulatedFlow);
     const hasSimulatedRef = useRef(false);
+    const lastAIMessageIdRef = useRef<string | null>(null);
+    const isProcessingQueueRef = useRef(false);
 
     const hasMessages = messages.length > 0;
 
@@ -338,6 +366,299 @@ export function ChatSidekick({
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, isLoading]);
 
+    // Widget drop is handled by InlineChatInput component
+
+    // Extract widget content from DOM
+    const extractWidgetContent = useCallback((widgetLayout: WidgetLayout): string => {
+        try {
+            // Find widget element by data attribute
+            const widgetElement = document.querySelector(
+                `[data-widget-instance-id="${widgetLayout.id}"]`
+            );
+
+            if (!widgetElement) {
+                return "Widget not found in DOM";
+            }
+
+            // Extract text content from the widget
+            const textContent: string[] = [];
+
+            // Get all text nodes, excluding script and style elements
+            const walker = document.createTreeWalker(
+                widgetElement,
+                NodeFilter.SHOW_TEXT,
+                {
+                    acceptNode: (node) => {
+                        const parent = node.parentElement;
+                        if (!parent) return NodeFilter.FILTER_REJECT;
+                        
+                        // Skip script, style, and hidden elements
+                        if (
+                            parent.tagName === "SCRIPT" ||
+                            parent.tagName === "STYLE" ||
+                            parent.closest("[hidden]") ||
+                            parent.closest("[style*='display: none']")
+                        ) {
+                            return NodeFilter.FILTER_REJECT;
+                        }
+                        
+                        // Only include visible text
+                        const text = node.textContent?.trim() || "";
+                        if (text.length === 0) return NodeFilter.FILTER_REJECT;
+                        
+                        return NodeFilter.FILTER_ACCEPT;
+                    },
+                }
+            );
+
+            const textNodes: string[] = [];
+            let node;
+            while ((node = walker.nextNode())) {
+                const text = node.textContent?.trim();
+                if (text && text.length > 0) {
+                    textNodes.push(text);
+                }
+            }
+
+            // Also extract specific value elements (numbers, percentages, etc.)
+            const valueSelectors = [
+                '[class*="value"]',
+                '[class*="metric"]',
+                '[class*="kpi"]',
+                '[class*="number"]',
+                '[class*="percentage"]',
+                '[class*="count"]',
+            ];
+
+            const extractedValues: string[] = [];
+            valueSelectors.forEach((selector) => {
+                const elements = widgetElement.querySelectorAll(selector);
+                elements.forEach((el) => {
+                    const text = el.textContent?.trim();
+                    if (text && text.length > 0 && text.length < 100) {
+                        extractedValues.push(text);
+                    }
+                });
+            });
+
+            // Combine and deduplicate
+            const allContent = [...textNodes, ...extractedValues];
+            const uniqueContent = Array.from(new Set(allContent));
+
+            // Filter out very short or common UI text
+            const filteredContent = uniqueContent.filter((text) => {
+                return (
+                    text.length > 1 &&
+                    !text.match(/^(and|or|the|a|an|in|on|at|to|for|of|with|by)$/i) &&
+                    !text.match(/^[^\w\s]+$/) // Not just punctuation
+                );
+            });
+
+            // Limit to reasonable size and format
+            const content = filteredContent.slice(0, 50).join(" | ");
+            return content || "No extractable content found";
+        } catch (error) {
+            console.error("Error extracting widget content:", error);
+            return "Error extracting widget content";
+        }
+    }, []);
+
+    // Send message to AI
+    const sendMessage = useCallback(async (content: {
+        text: string;
+        chips: WidgetLayout[];
+    }) => {
+        if (!content.text.trim() && content.chips.length === 0) return;
+
+        // Build conversation history before adding the new user message
+        const conversationHistory = messages.map((msg) => ({
+            role: msg.role,
+            content: msg.content,
+        }));
+
+        const currentMessage = content.text.trim();
+        setIsLoading(true);
+        setIsGenerating(true);
+
+        // Add user message to chat body when we start processing (not when queued)
+        const userMessage: Message = {
+            id: Date.now().toString(),
+            role: "user",
+            content: content.text.trim(),
+            widgetChips: content.chips.length > 0 ? content.chips : undefined,
+        };
+
+        setMessages((prev) => [...prev, userMessage]);
+
+        // Create new AbortController for this request
+        const abortController = new AbortController();
+        abortControllerRef.current = abortController;
+
+        // Call the onSendMessage callback
+        if (onSendMessage) {
+            onSendMessage(userMessage.content);
+        }
+
+        try {
+            // Build widget context from chips with extracted content
+            const widgetContext = content.chips.map((chip) => {
+                const widgetMetadata = getWidgetById(chip.widgetId);
+                const extractedContent = extractWidgetContent(chip);
+                
+                return {
+                    widgetId: chip.widgetId,
+                    name: widgetMetadata?.name || chip.widgetId,
+                    description: widgetMetadata?.description || "",
+                    category: widgetMetadata?.category || "",
+                    dataSource: widgetMetadata?.dataSource || [],
+                    content: extractedContent, // Add extracted DOM content
+                };
+            });
+
+            // Clean message text - remove widget placeholders when we have widget context
+            let cleanedMessage = currentMessage;
+            if (widgetContext.length > 0) {
+                // Remove [WIDGET:...] placeholders from the message text
+                cleanedMessage = cleanedMessage.replace(
+                    /\[WIDGET:[^\]]+\]/g,
+                    ""
+                ).trim();
+            }
+
+            // Enhance message with widget context
+            let enhancedMessage = cleanedMessage;
+            if (widgetContext.length > 0) {
+                const widgetContextText = widgetContext
+                    .map(
+                        (widget) =>
+                            `Widget: ${widget.name} (${widget.widgetId})\nDescription: ${widget.description}\nCategory: ${widget.category}${widget.dataSource.length > 0 ? `\nData Source: ${widget.dataSource.join(", ")}` : ""}${widget.content ? `\nContent: ${widget.content}` : ""}`
+                    )
+                    .join("\n\n");
+                enhancedMessage = cleanedMessage
+                    ? `${cleanedMessage}\n\nReferenced Widgets:\n${widgetContextText}`
+                    : `Referenced Widgets:\n${widgetContextText}`;
+            }
+
+            // Call Gemini API with abort signal
+            const response = await fetch("/api/chat", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    message: enhancedMessage,
+                    conversationHistory,
+                    widgetContext: widgetContext.length > 0 ? widgetContext : undefined,
+                }),
+                signal: abortController.signal,
+            });
+
+            // Check if request was aborted
+            if (abortController.signal.aborted) {
+                return;
+            }
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const errorMessage = errorData.error || `Failed to get response from AI (${response.status})`;
+                
+                // Check if it's a quota/rate limit error
+                if (response.status === 429 || errorMessage.includes("quota") || errorMessage.includes("RESOURCE_EXHAUSTED") || errorMessage.includes("rate limit")) {
+                    throw new Error("Exceeded current quota");
+                }
+                
+                throw new Error(errorMessage);
+            }
+
+            const data = await response.json();
+
+            if (data.error) {
+                // Check if it's a quota/rate limit error
+                const errorMessage = data.error;
+                if (typeof errorMessage === "string" && (errorMessage.includes("quota") || errorMessage.includes("RESOURCE_EXHAUSTED") || errorMessage.includes("rate limit") || errorMessage.includes("429"))) {
+                    throw new Error("Exceeded current quota");
+                }
+                throw new Error(errorMessage);
+            }
+
+            const aiMessage: Message = {
+                id: (Date.now() + 1).toString(),
+                role: "ai",
+                content:
+                    data.message ||
+                    "I apologize, but I couldn't generate a response.",
+            };
+
+            // Track the last AI message for typing completion
+            lastAIMessageIdRef.current = aiMessage.id;
+            setMessages((prev) => [...prev, aiMessage]);
+            
+            // Keep isGenerating true - it will be set to false when typing completes
+            // Don't set it to false here, let the typing animation complete
+        } catch (error) {
+            // Don't show error if request was aborted
+            if (error instanceof Error && error.name === "AbortError") {
+                const stoppedMessage: Message = {
+                    id: (Date.now() + 1).toString(),
+                    role: "ai",
+                    content: "Generation stopped.",
+                };
+                lastAIMessageIdRef.current = stoppedMessage.id;
+                setMessages((prev) => [...prev, stoppedMessage]);
+                return;
+            }
+
+            console.error("Error sending message:", error);
+            
+            // Simplify error message for quota/rate limit errors
+            let displayError = "I'm sorry, I encountered an error. Please try again later.";
+            if (error instanceof Error) {
+                const errorMsg = error.message;
+                // Check if it's a quota/rate limit error
+                if (errorMsg.includes("quota") || errorMsg.includes("RESOURCE_EXHAUSTED") || errorMsg.includes("rate limit") || errorMsg.includes("429") || errorMsg === "Exceeded current quota") {
+                    displayError = "Exceeded current quota";
+                } else {
+                    displayError = errorMsg;
+                }
+            }
+            
+            const errorMessage: Message = {
+                id: (Date.now() + 1).toString(),
+                role: "ai",
+                content: displayError,
+            };
+            lastAIMessageIdRef.current = errorMessage.id;
+            setMessages((prev) => [...prev, errorMessage]);
+        } finally {
+            setIsLoading(false);
+            // Don't set isGenerating to false here - let it stay true until typing completes
+            // isGenerating will be set to false by the onTypingComplete callback
+            abortControllerRef.current = null;
+        }
+    }, [messages, onSendMessage, extractWidgetContent]);
+
+    // Process queue when generation completes (after typing animation finishes)
+    useEffect(() => {
+        // Only process if we're not generating, not loading, have queued messages, and not already processing
+        if (!isGenerating && !isLoading && messageQueue.length > 0 && !isProcessingQueueRef.current) {
+            isProcessingQueueRef.current = true;
+            
+            // Get the first message from current queue state
+            const nextMessage = messageQueue[0];
+            
+            // Remove from queue immediately (updates UI)
+            setMessageQueue((prev) => prev.slice(1));
+            
+            // Send the message
+            sendMessage(nextMessage);
+            
+            // Reset processing flag after delay to allow next message to process
+            setTimeout(() => {
+                isProcessingQueueRef.current = false;
+            }, 500);
+        }
+    }, [isGenerating, isLoading, messageQueue.length, sendMessage]);
+
     // Handle custom drag and drop events
     useEffect(() => {
         const handleWidgetDragOver = (e: CustomEvent<{ isOver: boolean }>) => {
@@ -363,87 +684,50 @@ export function ChatSidekick({
         };
     }, [setIsDragOver]);
 
-    // Widget drop is handled by InlineChatInput component
-
+    // Handle send - send immediately if not generating, otherwise queue
     const handleSend = async (content: {
         text: string;
         chips: WidgetLayout[];
     }) => {
-        if ((!content.text.trim() && content.chips.length === 0) || isLoading)
-            return;
+        if (!content.text.trim() && content.chips.length === 0) return;
 
-        const userMessage: Message = {
-            id: Date.now().toString(),
-            role: "user",
-            content: content.text.trim(),
-            widgetChips: content.chips.length > 0 ? content.chips : undefined,
-        };
-
-        setMessages((prev) => [...prev, userMessage]);
-        const currentMessage = content.text.trim();
-        setIsLoading(true);
-
-        // Call the onSendMessage callback
-        if (onSendMessage) {
-            onSendMessage(userMessage.content);
+        // If not generating and not loading, send immediately
+        if (!isGenerating && !isLoading) {
+            sendMessage(content);
+        } else {
+            // Otherwise, add to queue
+            setMessageQueue((prev) => [...prev, content]);
         }
+    };
 
-        try {
-            // Build conversation history for context
-            const conversationHistory = messages.map((msg) => ({
-                role: msg.role,
-                content: msg.content,
-            }));
+    // Handle typing completion for AI messages
+    const handleTypingComplete = useCallback(() => {
+        // Set isGenerating to false when the tracked message finishes typing
+        // This ensures we only stop generating when the last AI message completes typing
+        setIsGenerating(false);
+    }, []);
 
-            // Call Gemini API
-            const response = await fetch("/api/chat", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    message: currentMessage,
-                    conversationHistory,
-                }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(
-                    errorData.error ||
-                        `Failed to get response from AI (${response.status})`
-                );
-            }
-
-            const data = await response.json();
-
-            if (data.error) {
-                throw new Error(data.error);
-            }
-
-            const aiMessage: Message = {
-                id: (Date.now() + 1).toString(),
-                role: "ai",
-                content:
-                    data.message ||
-                    "I apologize, but I couldn't generate a response.",
-            };
-
-            setMessages((prev) => [...prev, aiMessage]);
-        } catch (error) {
-            console.error("Error sending message:", error);
-            const errorMessage: Message = {
-                id: (Date.now() + 1).toString(),
-                role: "ai",
-                content:
-                    error instanceof Error
-                        ? error.message
-                        : "I'm sorry, I encountered an error. Please try again later.",
-            };
-            setMessages((prev) => [...prev, errorMessage]);
-        } finally {
-            setIsLoading(false);
+    // Handle stop - abort current request and clear queue
+    const handleStop = () => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
         }
+        setIsGenerating(false);
+        setIsLoading(false);
+        setMessageQueue([]);
+        lastAIMessageIdRef.current = null;
+    };
+
+
+    // Get preview text for queued message
+    const getQueueItemPreview = (item: QueuedMessage): string => {
+        const textPreview = item.text.trim();
+        const chipCount = item.chips.length;
+        if (textPreview) {
+            return chipCount > 0 ? `${textPreview} (+${chipCount} widget${chipCount > 1 ? "s" : ""})` : textPreview;
+        }
+        return chipCount > 0 ? `${chipCount} widget${chipCount > 1 ? "s" : ""}` : "Empty message";
     };
 
     return (
@@ -517,7 +801,14 @@ export function ChatSidekick({
                                 {msg.role === "user" ? (
                                     <UserMessage message={msg} />
                                 ) : (
-                                    <AIMessage message={msg} />
+                                    <AIMessage 
+                                        message={msg} 
+                                        onTypingComplete={
+                                            msg.id === lastAIMessageIdRef.current 
+                                                ? handleTypingComplete 
+                                                : undefined
+                                        }
+                                    />
                                 )}
                             </div>
                         ))}
@@ -530,6 +821,78 @@ export function ChatSidekick({
                     </div>
                 )}
             </div>
+
+            {/* Queue UI - Show when there are queued messages */}
+            {messageQueue.length > 0 && (
+                <div className="border-t border-[#d9dede] bg-white">
+                    {/* Queue Header */}
+                    {messageQueue.length > 0 && (
+                        <button
+                            onClick={() => setIsQueueExpanded(!isQueueExpanded)}
+                            className="w-full flex items-center justify-between px-4 py-2 hover:bg-gray-50 transition-colors"
+                        >
+                            <div className="flex items-center gap-2">
+                                <CaretDown
+                                    className={`w-4 h-4 text-[#5d6c6b] transition-transform ${
+                                        isQueueExpanded ? "" : "-rotate-90"
+                                    }`}
+                                    weight="regular"
+                                />
+                                <span className="text-sm font-medium text-[#262b2b]">
+                                    {messageQueue.length} Queued
+                                </span>
+                            </div>
+                        </button>
+                    )}
+
+                    {/* Queue Items */}
+                    {isQueueExpanded && messageQueue.length > 0 && (
+                        <div className="px-4 pb-2 space-y-1 max-h-[200px] overflow-y-auto">
+                            {messageQueue.map((item, index) => (
+                                <div
+                                    key={`queue-${index}-${item.text.substring(0, 10)}`}
+                                    className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 group"
+                                >
+                                    <div className="flex items-center justify-center w-5 h-5 rounded-full border border-[#d9dede] shrink-0 text-xs font-medium text-[#5d6c6b]">
+                                        {index + 1}
+                                    </div>
+                                    <span className="flex-1 text-sm text-[#262b2b] truncate">
+                                        {getQueueItemPreview(item)}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Currently Generating */}
+                    {isGenerating && (
+                        <div className="px-4 py-2 border-t border-[#d9dede]">
+                            <div className="flex items-center gap-2">
+                                <ArrowRight
+                                    className="w-4 h-4 text-[#158039] shrink-0"
+                                    weight="regular"
+                                />
+                                <span className="flex-1 text-sm text-[#262b2b]">
+                                    Generating...
+                                </span>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={handleStop}
+                                        className="px-3 py-1 text-sm font-medium text-[#262b2b] hover:bg-gray-100 rounded transition-colors"
+                                    >
+                                        Stop
+                                    </button>
+                                    <button
+                                        className="px-3 py-1 text-sm font-medium text-white bg-[#158039] hover:bg-[#158039]/90 rounded transition-colors"
+                                    >
+                                        Review
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Message Input */}
             <div className="flex gap-2 items-start p-4 relative shrink-0 z-5 border-t border-[#d9dede] w-full">
@@ -559,7 +922,7 @@ export function ChatSidekick({
                     <div className="flex gap-[10px] items-start max-h-[236px] overflow-x-clip overflow-y-auto relative shrink-0 w-full">
                         <InlineChatInput
                             placeholder="Message Sidekick... or drag a widget here"
-                            disabled={isLoading}
+                            disabled={false}
                             onSend={handleSend}
                             onFocus={() => setIsFocused(true)}
                             onBlur={() => setIsFocused(false)}
@@ -575,12 +938,26 @@ export function ChatSidekick({
 
                     {/* Actions */}
                     <div className="flex flex-wrap gap-2 items-center justify-between relative shrink-0 w-full">
+                        {/* Queue Indicator */}
+                        {messageQueue.length > 0 && (
+                            <div className="flex items-center gap-1.5 text-sm text-[#5d6c6b]">
+                                <span className="font-medium">
+                                    {messageQueue.length}
+                                </span>
+                                <span>
+                                    {messageQueue.length === 1
+                                        ? "message"
+                                        : "messages"}{" "}
+                                    queued
+                                </span>
+                            </div>
+                        )}
                         <div className="flex gap-2 grow items-center justify-end min-h-0 min-w-0 relative shrink-0">
                             {/* Paperclip Button */}
                             <button
                                 className="box-border flex items-center justify-center w-9 h-9 overflow-clip relative rounded-lg shrink-0 hover:bg-gray-50 transition-colors"
                                 aria-label="Attach file"
-                                disabled={isLoading}
+                                disabled={isLoading || isGenerating}
                             >
                                 <Paperclip
                                     className="w-5 h-5 text-[#4b686e]"
@@ -588,28 +965,41 @@ export function ChatSidekick({
                                 />
                             </button>
 
-                            {/* Send Button */}
-                            <button
-                                onClick={() =>
-                                    sendButtonRef.current?.triggerSend()
-                                }
-                                className={`box-border flex items-center justify-center w-9 h-9 overflow-clip relative rounded-lg shrink-0 transition-colors ${
-                                    hasContent && !isLoading
-                                        ? "bg-[#158039] hover:bg-[#158039]/90"
-                                        : "bg-[#f1f2f3] hover:bg-[#e1e2e3]"
-                                }`}
-                                aria-label="Send message"
-                                disabled={!hasContent || isLoading}
-                            >
-                                <PaperPlaneRight
-                                    className={`w-5 h-5 ${
+                            {/* Send/Stop Button */}
+                            {isGenerating ? (
+                                <button
+                                    onClick={handleStop}
+                                    className="box-border flex items-center justify-center w-9 h-9 overflow-clip relative rounded-lg shrink-0 transition-colors bg-red-500 hover:bg-red-600"
+                                    aria-label="Stop generation"
+                                >
+                                    <Stop
+                                        className="w-5 h-5 text-white"
+                                        weight="fill"
+                                    />
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() =>
+                                        sendButtonRef.current?.triggerSend()
+                                    }
+                                    className={`box-border flex items-center justify-center w-9 h-9 overflow-clip relative rounded-lg shrink-0 transition-colors ${
                                         hasContent && !isLoading
-                                            ? "text-white"
-                                            : "text-[#4b686e]"
+                                            ? "bg-[#158039] hover:bg-[#158039]/90"
+                                            : "bg-[#f1f2f3] hover:bg-[#e1e2e3]"
                                     }`}
-                                    weight="fill"
-                                />
-                            </button>
+                                    aria-label="Send message"
+                                    disabled={!hasContent || isLoading}
+                                >
+                                    <PaperPlaneRight
+                                        className={`w-5 h-5 ${
+                                            hasContent && !isLoading
+                                                ? "text-white"
+                                                : "text-[#4b686e]"
+                                        }`}
+                                        weight="fill"
+                                    />
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
