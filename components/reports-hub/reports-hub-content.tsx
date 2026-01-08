@@ -113,7 +113,12 @@ export function ReportsHubContent({
                                 icon={Icon}
                                 onClick={() => {
                                     if (report.slug) {
-                                        router.push(`/reports-hub/${report.slug}`);
+                                        // Special case: route to /dashboard instead of /reports-hub/dashboard
+                                        if (report.slug === "dashboard") {
+                                            router.push("/dashboard");
+                                        } else {
+                                            router.push(`/reports-hub/${report.slug}`);
+                                        }
                                     }
                                 }}
                             />

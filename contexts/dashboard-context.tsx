@@ -20,6 +20,7 @@ import {
     saveDraftConfig,
     loadDraftConfig,
     getDefaultConfig,
+    getHeadcountMovementConfig,
     resetToDefault,
 } from "@/lib/dashboard-config";
 
@@ -89,8 +90,11 @@ export function DashboardProvider({
                 return;
             }
 
-            // Use default config
-            const defaultConfig = getDefaultConfig(role);
+            // Use default config based on userId
+            // If userId is "headcount-movement", use headcount-specific widgets
+            const defaultConfig = userId === "headcount-movement" 
+                ? getHeadcountMovementConfig(role)
+                : getDefaultConfig(role);
             setConfig(defaultConfig);
             setOriginalConfig(defaultConfig);
             setHasUnsavedChanges(false);
@@ -139,11 +143,14 @@ export function DashboardProvider({
     }, [originalConfig]);
 
     const resetLayout = useCallback(() => {
-        const defaultConfig = resetToDefault(role);
+        // Use appropriate default config based on userId
+        const defaultConfig = config.userId === "headcount-movement"
+            ? getHeadcountMovementConfig(role)
+            : resetToDefault(role);
         setConfig(defaultConfig);
         setOriginalConfig(defaultConfig);
         setHasUnsavedChanges(true);
-    }, [role]);
+    }, [role, config.userId]);
 
     const addWidget = useCallback(
         (widgetId: string) => {

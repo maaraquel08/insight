@@ -1,0 +1,4 @@
+{"location":"attrition-trend-chart.tsx:303","message":"fetchInsight called","data":{"retryCount":0,"dataKeyLength":47},"timestamp":1767853607141,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"attrition-trend-chart.tsx:308","message":"Before API call","data":{"retryCount":0},"timestamp":1767853607141,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"attrition-trend-chart.tsx:325","message":"Response received","data":{"status":200,"ok":true,"retryCount":0},"timestamp":1767853613346,"sessionId":"debug-session","runId":"run1","hypothesisId":"C"}
+{"location":"attrition-trend-chart.tsx:361","message":"Success - insight received","data":{"insightLength":70,"retryCount":0},"timestamp":1767853613347,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}

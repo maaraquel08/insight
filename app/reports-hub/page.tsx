@@ -68,6 +68,13 @@ const reports: ReportCardProps[] = [
         status: "default",
         category: "hr",
     },
+    {
+        title: "Headcount Movement",
+        description: "Chatbot answers your questions about company",
+        status: "default",
+        category: "hr",
+        slug: "headcount",
+    },
     // Payroll Reports (4)
     {
         title: "Salary",
