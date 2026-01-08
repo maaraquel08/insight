@@ -48,12 +48,21 @@ export function ExecutiveSnapshotCard({
             metricExplanation = "Total number of active employees on payroll.";
             changeExplanation = "Current headcount minus last period's headcount, divided by last period's headcount, times 100.";
         } else if (titleLower.includes("attrition")) {
-            metricExplanation = "Percentage of employees who left. Employees who left divided by total employees, times 100.";
+            metricExplanation = "Percentage of employees who left the organization. Calculated as: (Employees who left ÷ Total employees) × 100. This includes both voluntary and involuntary separations.";
             if (hasPoints) {
                 changeExplanation = "Current rate minus last period's rate. Shows the difference in percentage points.";
             } else {
                 changeExplanation = "Current rate minus last period's rate, divided by last period's rate, times 100.";
             }
+        } else if (titleLower.includes("separations")) {
+            metricExplanation = "Total number of employees who left the organization during the period. Includes voluntary resignations, involuntary terminations, retirements, and other departures.";
+            changeExplanation = "Current period separations minus last period's separations. A negative change indicates fewer departures, which is generally positive for retention.";
+        } else if (titleLower.includes("tenure")) {
+            metricExplanation = "Average length of time employees have been with the organization. Calculated by summing all employee tenures and dividing by total headcount. Higher tenure typically indicates better retention.";
+            changeExplanation = "Current average tenure minus last period's average tenure. An increase suggests employees are staying longer, which is positive for organizational stability.";
+        } else if (titleLower.includes("voluntary") || titleLower.includes("turnover")) {
+            metricExplanation = "Percentage of total separations that were voluntary (employee-initiated). Calculated as: (Voluntary separations ÷ Total separations) × 100. High voluntary turnover may indicate compensation, culture, or career development issues.";
+            changeExplanation = "Current voluntary turnover percentage minus last period's percentage. An increase suggests more employees are choosing to leave, which may require attention to retention strategies.";
         } else if (titleLower.includes("payroll")) {
             metricExplanation = "Total cost of all employee payments: salaries, benefits, and bonuses.";
             changeExplanation = "Current payroll minus last period's payroll, divided by last period's payroll, times 100.";
@@ -150,6 +159,16 @@ export function ExecutiveSnapshotCard({
                                                 {metricExplanation}
                                             </p>
                                         </div>
+                                        {description && (
+                                            <div className="pt-1.5 border-t border-white/20">
+                                                <p className="text-xs font-medium text-white mb-1.5">
+                                                    Context
+                                                </p>
+                                                <p className="text-xs text-white/85 leading-relaxed">
+                                                    {description}
+                                                </p>
+                                            </div>
+                                        )}
                                         <div className="pt-1.5 border-t border-white/20">
                                             <p className="text-xs font-medium text-white mb-1.5">
                                                 Change: {change}

@@ -42,5 +42,6 @@ export const masonryItemStyle: CSSProperties & {
     display: "inline-block",
     width: "100%",
     marginBottom: "24px",
+    contain: "layout",
 };
 
