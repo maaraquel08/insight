@@ -25,7 +25,9 @@ export function HeadcountTrendAdvanced() {
     }, []);
 
     const chartOptions: ApexOptions = useMemo(() => {
-        if (!trendData) return {};
+        if (!trendData) {
+            return {} as ApexOptions;
+        }
 
         return {
             chart: {
@@ -138,8 +140,7 @@ export function HeadcountTrendAdvanced() {
                     colors: "#5d6c6b",
                 },
                 markers: {
-                    width: 12,
-                    height: 12,
+                    size: 12,
                 },
             },
             colors: ["#1356ba", "#158039", "#b61f27", "#738482"],
