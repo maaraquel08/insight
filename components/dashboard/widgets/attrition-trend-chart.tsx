@@ -435,7 +435,7 @@ export function AttritionTrendChart() {
 
     if (!allData) {
         return (
-            <div className="bg-white rounded-xl border border-[#d9dede] overflow-hidden" style={{ contain: "layout" }}>
+            <div className="bg-white rounded-xl border border-[#d9dede] overflow-hidden">
                 <div className="px-4 py-3 border-b border-[#d9dede]">
                     <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
