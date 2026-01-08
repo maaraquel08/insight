@@ -279,30 +279,25 @@ export function AttritionTrendChart() {
     }, [data]);
 
     // State for AI-generated insight
-    const [insight, setInsight] = useState<string>("");
+    const [insight, setInsight] = useState<string>("Click Foresight to generate AI insights");
     const [isLoadingInsight, setIsLoadingInsight] = useState(false);
     const [insightError, setInsightError] = useState<string | null>(null);
 
-    // Generate insight using Gemini API when data is available
-    useEffect(() => {
-        if (!allData || !allData.series || allData.series.length === 0) {
-            setInsight("Analyzing attrition trends to provide insights...");
-            return;
-        }
-
-        // Create a stable key based on the data to cache insights
-        const dataKey = JSON.stringify(allData.series);
-        
-        // Check if we already have a cached insight for this data
-        if (cachedInsight && lastInsightKey === dataKey) {
-            setInsight(cachedInsight);
-            return;
-        }
-
-        // Fetch insight from API with retry logic for 503 and 429 errors
-        const fetchInsight = async (retryCount = 0) => {
+    // Fetch insight from API with retry logic for 503 and 429 errors
+    // This function is called only when Foresight button is clicked
+    const fetchInsight = async (retryCount = 0, dataKey?: string) => {
             setIsLoadingInsight(true);
             setInsightError(null);
+            
+            // Early return if allData is not available
+            if (!allData) {
+                setInsightError("No data available to generate insight");
+                setIsLoadingInsight(false);
+                return;
+            }
+            
+            // Generate dataKey if not provided
+            const finalDataKey = dataKey || JSON.stringify(allData.series);
             
             try {
                 const response = await fetch("/api/insight", {
@@ -324,7 +319,7 @@ export function AttritionTrendChart() {
                         // Exponential backoff: 1s, 2s, 4s
                         const delay = Math.pow(2, retryCount) * 1000;
                         await new Promise(resolve => setTimeout(resolve, delay));
-                        return fetchInsight(retryCount + 1);
+                        return fetchInsight(retryCount + 1, finalDataKey);
                     } else {
                         // Max retries reached, use fallback
                         throw new Error("Service temporarily unavailable. Please try again later.");
@@ -337,7 +332,7 @@ export function AttritionTrendChart() {
                     try {
                         errorData = await response.json();
                     } catch {
-                        errorData = { error: "Quota exceeded" };
+                        errorData = { error: "Exceed current quota" };
                     }
                     
                     // Parse retry delay (e.g., "30s" -> 30000ms)
@@ -349,8 +344,17 @@ export function AttritionTrendChart() {
                         }
                     }
 
-                    // Show user-friendly error message
-                    const quotaError = errorData.error || "You've exceeded your current quota. Please check your plan and billing details.";
+                    // Show simple error message - ensure it's always a string
+                    let quotaError = "Exceed current quota";
+                    if (errorData.error) {
+                        // Safety check: if error is an object, extract message or use fallback
+                        if (typeof errorData.error === "string") {
+                            quotaError = errorData.error;
+                        } else if (errorData.error?.message && typeof errorData.error.message === "string") {
+                            quotaError = errorData.error.message;
+                        }
+                        // Otherwise use the default "Exceed current quota"
+                    }
                     setInsightError(quotaError);
                     
                     // Fallback to a simple static insight
@@ -367,7 +371,17 @@ export function AttritionTrendChart() {
                     } catch {
                         errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
                     }
-                    throw new Error(errorData.error || "Failed to generate insight");
+                    
+                    // Safety check: ensure error is always a string
+                    let errorMessage = "Failed to generate insight";
+                    if (errorData.error) {
+                        if (typeof errorData.error === "string") {
+                            errorMessage = errorData.error;
+                        } else if (errorData.error?.message && typeof errorData.error.message === "string") {
+                            errorMessage = errorData.error.message;
+                        }
+                    }
+                    throw new Error(errorMessage);
                 }
 
                 const result = await response.json();
@@ -375,23 +389,53 @@ export function AttritionTrendChart() {
                 
                 setInsight(generatedInsight);
                 setCachedInsight(generatedInsight);
-                setLastInsightKey(dataKey);
+                setLastInsightKey(finalDataKey);
                 setHasGenerated(true);
                 setInsightError(null); // Clear any previous errors
             } catch (error: any) {
                 console.error("Error fetching insight:", error);
-                setInsightError(error.message);
+                
+                // Safety check: ensure error message is always a string
+                let errorMessage = "Failed to generate insight";
+                if (error?.message && typeof error.message === "string") {
+                    errorMessage = error.message;
+                } else if (typeof error === "string") {
+                    errorMessage = error;
+                }
+                
+                setInsightError(errorMessage);
                 // Fallback to a simple static insight
                 const avgAttrition = allData.series.reduce((sum, val) => sum + val, 0) / allData.series.length;
                 setInsight(`Attrition rate is ${avgAttrition.toFixed(1)}% on average. Monitor key departments and tenure groups for retention opportunities.`);
             } finally {
                 setIsLoadingInsight(false);
             }
-        };
+    };
 
-        fetchInsight();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [allData]);
+    // Handle Foresight button click - only fetch insight when button is clicked
+    const handleForesightToggle = () => {
+        const newShowForesight = !showForesight;
+        setShowForesight(newShowForesight);
+
+        // Only fetch insight when turning ON foresight and we don't have cached insight
+        if (newShowForesight && allData && allData.series && allData.series.length > 0) {
+            // Create a stable key based on the data to cache insights
+            const dataKey = JSON.stringify(allData.series);
+            
+            // Check if we already have a cached insight for this data
+            if (cachedInsight && lastInsightKey === dataKey) {
+                setInsight(cachedInsight);
+                return;
+            }
+
+            // Only fetch if we don't have a real insight yet (not the default message)
+            if (!insight || insight === "Click Foresight to generate AI insights" || insight === "Analyzing attrition trends to provide insights...") {
+                // Set loading message
+                setInsight("Analyzing attrition trends to provide insights...");
+                fetchInsight(0, dataKey);
+            }
+        }
+    };
 
     // Reset cache when data changes (data key is handled in the insight fetch effect)
 
@@ -481,7 +525,7 @@ export function AttritionTrendChart() {
                         </div>
                         <button
                             type="button"
-                            onClick={() => setShowForesight(!showForesight)}
+                            onClick={handleForesightToggle}
                             className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer shrink-0 ${
                                 showForesight
                                     ? "bg-[#8139ee] text-white hover:bg-[#6b2fc7]"
@@ -563,7 +607,7 @@ export function AttritionTrendChart() {
                     </div>
                     <button
                         type="button"
-                        onClick={() => setShowForesight(!showForesight)}
+                        onClick={handleForesightToggle}
                         className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer shrink-0 ${
                             showForesight
                                 ? "bg-[#8139ee] text-white hover:bg-[#6b2fc7]"

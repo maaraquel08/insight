@@ -301,6 +301,7 @@ export function ChatSidekick({
 
     // Handle simulated flow - use a ref to track the flow to prevent duplicate execution
     const currentFlowRef = useRef<typeof simulatedFlow>(undefined);
+    const currentExecutionIdRef = useRef<number | null>(null);
 
     useEffect(() => {
         // Only execute if we have a new simulated flow that hasn't been processed
@@ -311,6 +312,9 @@ export function ChatSidekick({
             simulatedFlow.messages &&
             simulatedFlow.messages.length > 0
         ) {
+            // Cancel any previous simulation by generating a new execution ID
+            const executionId = Date.now();
+            currentExecutionIdRef.current = executionId;
             currentFlowRef.current = simulatedFlow;
             hasSimulatedRef.current = true;
 
@@ -319,6 +323,12 @@ export function ChatSidekick({
                 const flowId = Date.now();
 
                 for (let i = 0; i < simulatedFlow.messages.length; i++) {
+                    // Check if this execution has been cancelled (new flow started)
+                    if (currentExecutionIdRef.current !== executionId) {
+                        // This simulation has been cancelled, stop executing
+                        return;
+                    }
+
                     const msg = simulatedFlow.messages[i];
                     const delay = msg.delay || 0;
 
@@ -327,6 +337,11 @@ export function ChatSidekick({
                         await new Promise((resolve) =>
                             setTimeout(resolve, delay)
                         );
+                    }
+
+                    // Check again after delay in case flow changed during wait
+                    if (currentExecutionIdRef.current !== executionId) {
+                        return;
                     }
 
                     // Add message with unique ID using flowId + index + random component

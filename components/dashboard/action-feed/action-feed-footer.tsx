@@ -25,7 +25,7 @@ interface ActionFeedFooterProps {
 }
 
 export function ActionFeedFooter({ actions }: ActionFeedFooterProps) {
-    const { isOpen, openChat, queueMessage } = useChatSidekick();
+    const { openChat } = useChatSidekick();
 
     if (!actions || actions.length === 0) {
         return null;
@@ -35,22 +35,12 @@ export function ActionFeedFooter({ actions }: ActionFeedFooterProps) {
         if (action.chatAction) {
             // Check if we should use a simulated flow
             if (action.useSimulation && simulationFlows[action.chatAction]) {
-                // If chat is already open, queue the message instead of resetting
-                if (isOpen) {
-                    queueMessage("", simulationFlows[action.chatAction]);
-                } else {
-                    // Use simulated flow (opens chat)
-                    openChat(undefined, simulationFlows[action.chatAction]);
-                }
+                // Always reset chat with simulated flow for AI simulation experience
+                openChat(undefined, simulationFlows[action.chatAction]);
             } else {
                 // Use simple message (fallback for non-simulated actions)
-                const message = action.chatAction;
-                // If chat is already open, queue the message instead of resetting
-                if (isOpen) {
-                    queueMessage(message);
-                } else {
-                    openChat(message);
-                }
+                // Always reset chat for consistent experience
+                openChat(action.chatAction);
             }
         } else if (action.onClick) {
             action.onClick();

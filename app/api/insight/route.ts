@@ -199,7 +199,7 @@ Write a clean, professional insight that executives can immediately act on:`;
 
             return NextResponse.json(
                 {
-                    error: errorMessage || "You've exceeded your current quota. Please check your plan and billing details.",
+                    error: "Exceed current quota",
                     quotaExceeded: true,
                     retryDelay,
                 },
