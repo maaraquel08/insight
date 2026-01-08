@@ -11,6 +11,11 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Ensure proper handling of ESM modules like lucide-react
+  transpilePackages: [],
+  experimental: {
+    optimizePackageImports: ["lucide-react"],
+  },
 };
 
 export default nextConfig;

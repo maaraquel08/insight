@@ -13,6 +13,7 @@ import {
 import ReactMarkdown from "react-markdown";
 import Image from "next/image";
 import { useChatWidget } from "@/contexts/chat-widget-context";
+import { useChatSidekick } from "./chat-sidekick-context";
 import { WidgetChip } from "./widget-chip";
 import { InlineChatInput } from "./inline-chat-input";
 import type { WidgetLayout } from "@/types/dashboard";
@@ -272,6 +273,7 @@ export function ChatSidekick({
     const hasSimulatedRef = useRef(false);
     const lastAIMessageIdRef = useRef<string | null>(null);
     const isProcessingQueueRef = useRef(false);
+    const { queueHandlerRef } = useChatSidekick();
 
     const hasMessages = messages.length > 0;
 
@@ -758,6 +760,21 @@ export function ChatSidekick({
             setMessageQueue((prev) => [...prev, content]);
         }
     };
+
+    // Register queue handler with context so external components can queue messages
+    // This must be after handleSend is defined
+    // When called from external sources (like action feed), always queue, don't send immediately
+    useEffect(() => {
+        queueHandlerRef.current = (message: QueuedMessage) => {
+            // Always add to queue when called from external sources
+            // This ensures messages from action feed CTAs are queued, not sent immediately
+            setMessageQueue((prev) => [...prev, message]);
+        };
+
+        return () => {
+            queueHandlerRef.current = null;
+        };
+    }, [queueHandlerRef]);
 
     // Handle typing completion for AI messages
     const handleTypingComplete = useCallback(() => {

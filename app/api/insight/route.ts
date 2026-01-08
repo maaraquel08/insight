@@ -177,8 +177,12 @@ Write a clean, professional insight that executives can immediately act on:`;
     } catch (error: any) {
         console.error("Error calling Gemini API for insight:", error);
 
-        // Handle specific API errors
-        if (error?.error?.code === 503) {
+        // Handle specific API errors - check both error.error.code and error.code
+        const errorCode = error?.error?.code || error?.code;
+        const errorMessage = error?.error?.message || error?.message;
+        const errorStatus = error?.error?.status || error?.status;
+
+        if (errorCode === 503 || errorStatus === 503) {
             return NextResponse.json(
                 {
                     error: "The AI model is currently overloaded. Please try again in a moment.",
@@ -187,16 +191,23 @@ Write a clean, professional insight that executives can immediately act on:`;
             );
         }
 
-        if (error?.error?.code === 429) {
+        if (errorCode === 429 || errorStatus === 429) {
+            // Extract retry delay if available
+            const retryDelay = error?.error?.details?.find(
+                (detail: any) => detail["@type"] === "type.googleapis.com/google.rpc.RetryInfo"
+            )?.retryDelay || "30s";
+
             return NextResponse.json(
                 {
-                    error: "Rate limit exceeded. Please wait a moment before trying again.",
+                    error: errorMessage || "You've exceeded your current quota. Please check your plan and billing details.",
+                    quotaExceeded: true,
+                    retryDelay,
                 },
                 { status: 429 }
             );
         }
 
-        if (error?.error?.code === 401) {
+        if (errorCode === 401 || errorStatus === 401) {
             return NextResponse.json(
                 {
                     error: "Invalid API key. Please check your GEMINI_API_KEY configuration.",
@@ -206,17 +217,16 @@ Write a clean, professional insight that executives can immediately act on:`;
         }
 
         // Generic error response - return fallback insight
-        const errorMessage =
-            error?.error?.message ||
-            error?.message ||
+        const genericErrorMessage =
+            errorMessage ||
             "Failed to generate insight. Please try again.";
 
         return NextResponse.json(
             {
-                error: errorMessage,
+                error: genericErrorMessage,
                 insight: "Analyzing attrition trends to provide insights...",
             },
-            { status: error?.error?.code || error?.status || 500 }
+            { status: errorCode || errorStatus || 500 }
         );
     }
 }

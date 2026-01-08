@@ -6,6 +6,11 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ReportCard, ReportCardProps } from "./report-card";
+import { getReportIcon, iconRegistry } from "@/lib/report-icons";
+
+// Ensure icons are included in the bundle by referencing the registry
+// This prevents tree-shaking in production builds
+void iconRegistry;
 
 export interface CategoryTab {
     id: string;
@@ -79,7 +84,7 @@ export function ReportsHubContent({
                                 <TabsTrigger
                                     key={category.id}
                                     value={category.id}
-                                    className="inline-flex items-center justify-center gap-2 min-w-[64px] px-4 py-4 rounded-none border-b-2 border-transparent bg-transparent text-sm font-normal text-[#262b2b] uppercase tracking-[0.7px] data-[state=active]:border-[#158039] data-[state=active]:text-[#262b2b] data-[state=active]:bg-transparent data-[state=active]:shadow-none hover:text-[#262b2b] focus-visible:outline-none focus-visible:ring-0"
+                                    className="inline-flex items-center justify-center gap-2 min-w-[64px] px-4 py-4 rounded-none border-b-2 border-transparent bg-transparent text-sm font-normal text-[#262b2b] uppercase tracking-[0.7px] data-[state=active]:border-[#158039] data-[state=active]:text-[#262b2b] data-[state=active]:bg-transparent data-[state=active]:shadow-none hover:text-[#262b2b] focus-visible:outline-none focus-visible:ring-0 cursor-pointer"
                                 >
                                     <span className="leading-[14px]">
                                         {category.label}
@@ -99,17 +104,21 @@ export function ReportsHubContent({
             {/* Reports Grid */}
             <div className="flex flex-wrap gap-4 w-full">
                 {filteredReports.length > 0 ? (
-                    filteredReports.map((report) => (
-                        <ReportCard
-                            key={report.title}
-                            {...report}
-                            onClick={() => {
-                                if (report.slug) {
-                                    router.push(`/reports-hub/${report.slug}`);
-                                }
-                            }}
-                        />
-                    ))
+                    filteredReports.map((report) => {
+                        const Icon = getReportIcon(report.title);
+                        return (
+                            <ReportCard
+                                key={report.title}
+                                {...report}
+                                icon={Icon}
+                                onClick={() => {
+                                    if (report.slug) {
+                                        router.push(`/reports-hub/${report.slug}`);
+                                    }
+                                }}
+                            />
+                        );
+                    })
                 ) : (
                     <div className="w-full py-12 text-center">
                         <p className="text-sm text-[#5d6c6b]">

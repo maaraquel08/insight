@@ -299,7 +299,7 @@ export function AttritionTrendChart() {
             return;
         }
 
-        // Fetch insight from API with retry logic for 503 errors
+        // Fetch insight from API with retry logic for 503 and 429 errors
         const fetchInsight = async (retryCount = 0) => {
             setIsLoadingInsight(true);
             setInsightError(null);
@@ -331,6 +331,35 @@ export function AttritionTrendChart() {
                     }
                 }
 
+                // Handle 429 (quota exceeded) errors
+                if (response.status === 429) {
+                    let errorData;
+                    try {
+                        errorData = await response.json();
+                    } catch {
+                        errorData = { error: "Quota exceeded" };
+                    }
+                    
+                    // Parse retry delay (e.g., "30s" -> 30000ms)
+                    let retryDelayMs = 30000; // Default 30 seconds
+                    if (errorData.retryDelay) {
+                        const match = errorData.retryDelay.match(/(\d+)/);
+                        if (match) {
+                            retryDelayMs = parseInt(match[1]) * 1000;
+                        }
+                    }
+
+                    // Show user-friendly error message
+                    const quotaError = errorData.error || "You've exceeded your current quota. Please check your plan and billing details.";
+                    setInsightError(quotaError);
+                    
+                    // Fallback to a simple static insight
+                    const avgAttrition = allData.series.reduce((sum, val) => sum + val, 0) / allData.series.length;
+                    setInsight(`Attrition rate is ${avgAttrition.toFixed(1)}% on average. Monitor key departments and tenure groups for retention opportunities.`);
+                    setIsLoadingInsight(false);
+                    return;
+                }
+
                 if (!response.ok) {
                     let errorData;
                     try {
@@ -348,6 +377,7 @@ export function AttritionTrendChart() {
                 setCachedInsight(generatedInsight);
                 setLastInsightKey(dataKey);
                 setHasGenerated(true);
+                setInsightError(null); // Clear any previous errors
             } catch (error: any) {
                 console.error("Error fetching insight:", error);
                 setInsightError(error.message);
@@ -483,12 +513,25 @@ export function AttritionTrendChart() {
                                     <p className="text-sm text-[#5d6c6b]">Generating insight...</p>
                                 </div>
                             ) : (
-                                <p className="flex-1 font-normal grow leading-5 min-w-0 relative shrink-0 text-[#262b2b] text-sm">
-                                    {typedText}
-                                    {showForesight && typedText.length < (insight?.length || 0) && (
-                                        <span className="inline-block w-0.5 h-4 bg-[#262b2b] ml-1 animate-pulse" />
+                                <div className="flex-1">
+                                    {insightError ? (
+                                        <div className="flex flex-col gap-1">
+                                            <p className="font-normal grow leading-5 min-w-0 relative shrink-0 text-[#dc2626] text-sm">
+                                                {insightError}
+                                            </p>
+                                            <p className="font-normal text-xs text-[#5d6c6b]">
+                                                Showing fallback insight based on data analysis.
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <p className="font-normal grow leading-5 min-w-0 relative shrink-0 text-[#262b2b] text-sm">
+                                            {typedText}
+                                            {showForesight && typedText.length < (insight?.length || 0) && (
+                                                <span className="inline-block w-0.5 h-4 bg-[#262b2b] ml-1 animate-pulse" />
+                                            )}
+                                        </p>
                                     )}
-                                </p>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -554,12 +597,25 @@ export function AttritionTrendChart() {
                                 <p className="text-sm text-[#5d6c6b]">Generating insight...</p>
                             </div>
                         ) : (
-                            <p className="flex-1 font-normal grow leading-5 min-w-0 relative shrink-0 text-[#262b2b] text-sm">
-                                {typedText}
-                                {showForesight && typedText.length < (insight?.length || 0) && (
-                                    <span className="inline-block w-0.5 h-4 bg-[#262b2b] ml-1 animate-pulse" />
+                            <div className="flex-1">
+                                {insightError ? (
+                                    <div className="flex flex-col gap-1">
+                                        <p className="font-normal grow leading-5 min-w-0 relative shrink-0 text-[#dc2626] text-sm">
+                                            {insightError}
+                                        </p>
+                                        <p className="font-normal text-xs text-[#5d6c6b]">
+                                            Showing fallback insight based on data analysis.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <p className="font-normal grow leading-5 min-w-0 relative shrink-0 text-[#262b2b] text-sm">
+                                        {typedText}
+                                        {showForesight && typedText.length < (insight?.length || 0) && (
+                                            <span className="inline-block w-0.5 h-4 bg-[#262b2b] ml-1 animate-pulse" />
+                                        )}
+                                    </p>
                                 )}
-                            </p>
+                            </div>
                         )}
                     </div>
                 </div>
