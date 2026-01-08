@@ -74,10 +74,10 @@ function AttritionMetricCards() {
                     <ExecutiveSnapshotCard
                         icon={<Users className="w-6 h-6 text-[#738482]" />}
                         title="Overall Attrition"
-                        value="12.4%"
-                        change="3.1% vs last period"
+                        value="6.5%"
+                        change="-0.8% vs last period"
                         changeType="positive"
-                        description=""
+                        description="Attrition decreased from 7.3% to 6.5%, driven by improved retention in sales and customer service departments. Early tenure turnover (less than 1 year) saw the largest reduction."
                         onAskSidekick={() =>
                             handleAskSidekick("Overall Attrition")
                         }
@@ -90,9 +90,9 @@ function AttritionMetricCards() {
                         icon={<Users className="w-6 h-6 text-[#738482]" />}
                         title="Total Separations"
                         value="187"
-                        change="3.1% vs last period"
+                        change="-12 vs last period"
                         changeType="positive"
-                        description=""
+                        description="Total separations decreased from 199 to 187 employees. Voluntary separations accounted for 68% of departures, with the remainder being involuntary terminations and retirements."
                         onAskSidekick={() =>
                             handleAskSidekick("Total Separations")
                         }
@@ -105,9 +105,9 @@ function AttritionMetricCards() {
                         icon={<Users className="w-6 h-6 text-[#738482]" />}
                         title="Average Tenure Department"
                         value="2.8 Years"
-                        change="3.1% vs last period"
+                        change="+0.2 years vs last period"
                         changeType="positive"
-                        description=""
+                        description="Average tenure increased from 2.6 to 2.8 years, indicating improved employee retention. IT and Finance departments show the highest average tenure at 3.4 and 3.1 years respectively."
                         onAskSidekick={() =>
                             handleAskSidekick("Average Tenure Department")
                         }
@@ -120,9 +120,9 @@ function AttritionMetricCards() {
                         icon={<Users className="w-6 h-6 text-[#738482]" />}
                         title="Voluntary Turnover"
                         value="68.4%"
-                        change="3.1% vs last period"
-                        changeType="positive"
-                        description=""
+                        change="+2.3% vs last period"
+                        changeType="negative"
+                        description="Voluntary turnover increased from 66.1% to 68.4% of total separations. Top reasons include career advancement opportunities elsewhere (32%), compensation concerns (28%), and work-life balance (18%)."
                         onAskSidekick={() =>
                             handleAskSidekick("Voluntary Turnover")
                         }
