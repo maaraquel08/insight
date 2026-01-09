@@ -180,6 +180,61 @@ export const widgetRegistry: WidgetMetadata[] = [
         component: "ExecutiveSnapshotCard",
         locked: false,
     },
+    {
+        id: "headcount-kpi-cards",
+        name: "Headcount KPI Cards",
+        description:
+            "Executive summary with 6 key performance indicators including total headcount, net change, growth rate, attrition rate, hiring velocity, and diversity ratio",
+        category: "KPIs",
+        dataSource: ["People Health"],
+        defaultSize: "Medium",
+        component: "HeadcountKPICards",
+        locked: false,
+    },
+    {
+        id: "headcount-trend-advanced",
+        name: "Headcount Trend Advanced",
+        description:
+            "Multi-line chart showing historical headcount, hires, attritions, and year-over-year comparison with zoom and export capabilities",
+        category: "Analytics",
+        dataSource: ["People Health"],
+        defaultSize: "Medium",
+        component: "HeadcountTrendAdvanced",
+        locked: false,
+    },
+    {
+        id: "departmental-distribution-chart",
+        name: "Departmental Distribution",
+        description:
+            "Stacked bar chart showing headcount per department segmented by employment status with drill-down functionality",
+        category: "Analytics",
+        dataSource: ["People Health"],
+        defaultSize: "Medium",
+        component: "DepartmentalDistributionChart",
+        locked: false,
+    },
+    {
+        id: "attrition-heatmap",
+        name: "Attrition Heatmap",
+        description:
+            "Heatmap visualization showing attrition rates by department and tenure buckets for risk detection",
+        category: "Analytics",
+        dataSource: ["People Health"],
+        defaultSize: "Medium",
+        component: "AttritionHeatmap",
+        locked: false,
+    },
+    {
+        id: "yoy-comparison-table",
+        name: "YoY Comparison Table",
+        description:
+            "Sortable and searchable table with year-over-year comparison, growth rates, and trend sparklines",
+        category: "Analytics",
+        dataSource: ["People Health"],
+        defaultSize: "Medium",
+        component: "YoYComparisonTable",
+        locked: false,
+    },
 ];
 
 export function getWidgetById(id: string): WidgetMetadata | undefined {

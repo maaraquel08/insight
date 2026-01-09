@@ -6,7 +6,7 @@ import { DashboardTabs } from "@/components/dashboard/layout/dashboard-tabs";
 import { HeadcountKPICards } from "@/components/dashboard/widgets/kpi-cards/headcount-kpi-cards";
 import { FloatingChatSidekick } from "@/components/chatbot-sidekick";
 
-export default function Home() {
+export default function DashboardPage() {
     return (
         <DashboardContainer userId="user-1" role="admin">
             <main className="bg-[#f1f2f3] min-h-screen flex flex-col">

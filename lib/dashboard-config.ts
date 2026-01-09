@@ -83,68 +83,57 @@ export function resetToDefault(role: string): DashboardConfig {
 }
 
 export function getDefaultConfig(role: string): DashboardConfig {
-    // Metric cards use full width (12 columns), other widgets use 2-column layout (6 columns)
-    // Height is content-dependent
+    // Original People Health Dashboard - general widgets
     const defaultWidgets: WidgetLayout[] = [
         {
-            id: "metric-cards",
+            id: "metric-cards-section",
             widgetId: "metric-cards-section",
             x: 0,
             y: 0,
             width: 12, // Full width for metric cards
             height: 1,
-            size: "Medium", // Kept for backward compatibility
+            size: "Medium",
             order: 0,
         },
         {
-            id: "headcount-trend",
+            id: "headcount-trend-chart",
             widgetId: "headcount-trend-chart",
             x: 0,
             y: 1,
-            width: 6,
+            width: 6, // Half width
             height: 1,
             size: "Medium",
             order: 1,
         },
         {
-            id: "attrition-trend",
+            id: "attrition-trend-chart",
             widgetId: "attrition-trend-chart",
             x: 6,
             y: 1,
-            width: 6,
+            width: 6, // Half width
             height: 1,
             size: "Medium",
             order: 2,
         },
         {
-            id: "leave-types",
+            id: "leave-types-breakdown",
             widgetId: "leave-types-breakdown",
             x: 0,
             y: 2,
-            width: 6,
+            width: 6, // Half width
             height: 1,
             size: "Medium",
             order: 3,
         },
         {
-            id: "absenteeism-trend",
+            id: "absenteeism-trend-chart",
             widgetId: "absenteeism-trend-chart",
             x: 6,
             y: 2,
-            width: 6,
+            width: 6, // Half width
             height: 1,
             size: "Medium",
             order: 4,
-        },
-        {
-            id: "tenure-demographics",
-            widgetId: "tenure-demographics",
-            x: 0,
-            y: 3,
-            width: 6,
-            height: 1,
-            size: "Medium",
-            order: 5,
         },
     ];
 
@@ -157,3 +146,56 @@ export function getDefaultConfig(role: string): DashboardConfig {
     };
 }
 
+export function getHeadcountMovementConfig(role: string): DashboardConfig {
+    // Headcount Analytics Dashboard - headcount-specific widgets
+    const headcountWidgets: WidgetLayout[] = [
+        {
+            id: "headcount-trend-advanced",
+            widgetId: "headcount-trend-advanced",
+            x: 0,
+            y: 0,
+            width: 12, // Full width for trend chart
+            height: 1,
+            size: "Medium",
+            order: 0,
+        },
+        {
+            id: "departmental-distribution",
+            widgetId: "departmental-distribution-chart",
+            x: 0,
+            y: 1,
+            width: 12, // Full width for departmental chart
+            height: 1,
+            size: "Medium",
+            order: 1,
+        },
+        {
+            id: "attrition-heatmap",
+            widgetId: "attrition-heatmap",
+            x: 0,
+            y: 2,
+            width: 12, // Full width for heatmap
+            height: 1,
+            size: "Medium",
+            order: 2,
+        },
+        {
+            id: "yoy-comparison-table",
+            widgetId: "yoy-comparison-table",
+            x: 0,
+            y: 3,
+            width: 12, // Full width for comparison table
+            height: 1,
+            size: "Medium",
+            order: 3,
+        },
+    ];
+
+    return {
+        userId: "headcount-movement",
+        role,
+        widgets: headcountWidgets,
+        density: "Spacious",
+        version: 1,
+    };
+}

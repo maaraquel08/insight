@@ -13,7 +13,7 @@ import { ExecutiveSnapshotCard } from "./executive-snapshot-card";
 import { useDashboard } from "@/contexts/dashboard-context";
 import { useChatSidekick } from "@/components/chatbot-sidekick";
 import { Button } from "@/components/ui/button";
-import { DraggableWidgetWrapper } from "../draggable-widget-wrapper";
+import { DraggableWidgetWrapper } from "../../draggable-widget-wrapper";
 import type { WidgetLayout } from "@/types/dashboard";
 import {
     DndContext,
