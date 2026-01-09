@@ -59,28 +59,14 @@ export function DepartmentalDistributionChart() {
         if (!departmentData) return {};
 
         const categories = sortedDepartments.map((d) => d.name);
-        const regularData = sortedDepartments.map((d) => d.byStatus.regular);
-        const contractualData = sortedDepartments.map(
-            (d) => d.byStatus.contractual
-        );
-        const partTimeData = sortedDepartments.map((d) => d.byStatus.partTime);
 
         return {
             chart: {
                 type: "bar",
                 height: 400,
-                stacked: true,
+                stacked: sortBy === "size",
                 toolbar: {
-                    show: true,
-                    tools: {
-                        download: true,
-                        selection: false,
-                        zoom: false,
-                        zoomin: false,
-                        zoomout: false,
-                        pan: false,
-                        reset: false,
-                    },
+                    show: false,
                 },
                 events: {
                     dataPointSelection: (event: any, chartContext: any, config: any) => {
@@ -120,7 +106,7 @@ export function DepartmentalDistributionChart() {
             },
             yaxis: {
                 title: {
-                    text: "Headcount",
+                    text: sortBy === "size" ? "Headcount" : "Growth Rate (%)",
                     style: {
                         color: "#5d6c6b",
                         fontSize: "12px",
@@ -131,51 +117,73 @@ export function DepartmentalDistributionChart() {
                         colors: "#5d6c6b",
                         fontSize: "12px",
                     },
-                    formatter: (val: number) => val.toLocaleString(),
+                    formatter: (val: number) => 
+                        sortBy === "size" 
+                            ? val.toLocaleString() 
+                            : `${val.toFixed(1)}%`,
                 },
             },
             fill: {
                 opacity: 1,
-                colors: ["#1356ba", "#158039", "#738482"], // Blue, Green, Gray
+                colors: sortBy === "size" 
+                    ? ["#1356ba", "#158039", "#738482"] // Blue, Green, Gray for stacked bars
+                    : ["#158039"], // Green for growth rate bars
             },
             legend: {
-                position: "top",
-                horizontalAlign: "right",
+                position: "bottom",
+                horizontalAlign: "center",
                 fontSize: "12px",
                 labels: {
                     colors: "#5d6c6b",
                 },
+                show: sortBy === "size", // Only show legend when showing stacked bars
             },
             tooltip: {
                 shared: true,
                 intersect: false,
                 theme: "light",
                 y: {
-                    formatter: (val: number) => `${val.toLocaleString()} Employees`,
+                    formatter: (val: number) => 
+                        sortBy === "size"
+                            ? `${val.toLocaleString()} Employees`
+                            : `${val.toFixed(1)}%`,
                 },
             },
-            colors: ["#1356ba", "#158039", "#738482"],
+            colors: sortBy === "size"
+                ? ["#1356ba", "#158039", "#738482"]
+                : ["#158039"],
         };
-    }, [departmentData, sortedDepartments]);
+    }, [departmentData, sortedDepartments, sortBy]);
 
     const chartSeries = useMemo(() => {
         if (!departmentData) return [];
 
-        return [
-            {
-                name: "Regular",
-                data: sortedDepartments.map((d) => d.byStatus.regular),
-            },
-            {
-                name: "Contractual",
-                data: sortedDepartments.map((d) => d.byStatus.contractual),
-            },
-            {
-                name: "Part-time",
-                data: sortedDepartments.map((d) => d.byStatus.partTime),
-            },
-        ];
-    }, [departmentData, sortedDepartments]);
+        if (sortBy === "size") {
+            // Show stacked bars with employment status breakdown
+            return [
+                {
+                    name: "Regular",
+                    data: sortedDepartments.map((d) => d.byStatus.regular),
+                },
+                {
+                    name: "Contractual",
+                    data: sortedDepartments.map((d) => d.byStatus.contractual),
+                },
+                {
+                    name: "Part-time",
+                    data: sortedDepartments.map((d) => d.byStatus.partTime),
+                },
+            ];
+        } else {
+            // Show growth rate bars
+            return [
+                {
+                    name: "Growth Rate",
+                    data: sortedDepartments.map((d) => d.growthRate),
+                },
+            ];
+        }
+    }, [departmentData, sortedDepartments, sortBy]);
 
     const selectedDeptDetails = useMemo(() => {
         if (!selectedDepartment || !departmentData) return null;
@@ -189,37 +197,13 @@ export function DepartmentalDistributionChart() {
             <div className="bg-white rounded-xl border border-[#d9dede] overflow-hidden">
                 {/* Card Header */}
                 <div className="px-4 py-3 border-b border-[#d9dede]">
-                    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                        <div className="flex gap-1 items-center mb-1">
-                            <BarChart3 className="w-5 h-5 text-[#738482]" />
-                            <h2 className="text-base font-medium text-[#262b2b]">
-                                Departmental Distribution
-                            </h2>
-                        </div>
-                        <div className="flex gap-2 items-center">
-                            <button
-                                onClick={() => setSortBy("size")}
-                                className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
-                                    sortBy === "size"
-                                        ? "bg-[#158039] text-white border-[#158039]"
-                                        : "bg-white text-[#5d6c6b] border-[#d9dede] hover:bg-gray-50"
-                                }`}
-                            >
-                                Sort by Size
-                            </button>
-                            <button
-                                onClick={() => setSortBy("growth")}
-                                className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
-                                    sortBy === "growth"
-                                        ? "bg-[#158039] text-white border-[#158039]"
-                                        : "bg-white text-[#5d6c6b] border-[#d9dede] hover:bg-gray-50"
-                                }`}
-                            >
-                                Sort by Growth
-                            </button>
-                        </div>
+                    <div className="flex gap-1 items-center mb-1">
+                        <BarChart3 className="w-5 h-5 text-[#738482]" />
+                        <h2 className="text-base font-medium text-[#262b2b]">
+                            Departmental Distribution
+                        </h2>
                     </div>
-                    <p className="text-sm text-[#5d6c6b] mt-2">
+                    <p className="text-sm text-[#5d6c6b]">
                         Headcount per department segmented by employment status.
                         Click a bar to see details.
                     </p>
@@ -227,6 +211,29 @@ export function DepartmentalDistributionChart() {
 
                 {/* Chart or Loading State */}
                 <div className="p-4">
+                    {/* Sort Buttons */}
+                    <div className="mb-4 flex gap-2 items-center">
+                        <button
+                            onClick={() => setSortBy("size")}
+                            className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
+                                sortBy === "size"
+                                    ? "bg-[#158039] text-white border-[#158039]"
+                                    : "bg-white text-[#5d6c6b] border-[#d9dede] hover:bg-gray-50"
+                            }`}
+                        >
+                            Sort by Size
+                        </button>
+                        <button
+                            onClick={() => setSortBy("growth")}
+                            className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
+                                sortBy === "growth"
+                                    ? "bg-[#158039] text-white border-[#158039]"
+                                    : "bg-white text-[#5d6c6b] border-[#d9dede] hover:bg-gray-50"
+                            }`}
+                        >
+                            Sort by Growth
+                        </button>
+                    </div>
                     {isLoading ? (
                         <div className="flex items-center justify-center h-[400px]">
                             <p className="text-sm text-[#5d6c6b]">Loading chart...</p>

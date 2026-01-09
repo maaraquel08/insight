@@ -73,15 +73,32 @@ export function getHeadcountKPIs() {
 
 /**
  * Get historical trend data for headcount, hires, and attritions
+ * @param {string} department - Optional department filter. If provided, returns department-specific data
  * @returns {Object} Historical trend data with 12 months of data
  */
-export function getHeadcountTrendData() {
+export function getHeadcountTrendData(department = null) {
     const months = [];
     const totalHeadcount = [];
     const hires = [];
     const attritions = [];
     const previousYear = [];
     const currentDate = new Date();
+
+    // Department-specific multipliers for scaling data
+    const departmentMultipliers = {
+        "Engineering": { headcount: 0.1, hires: 0.08, attritions: 0.06 },
+        "Sales": { headcount: 0.06, hires: 0.12, attritions: 0.15 },
+        "Marketing": { headcount: 0.035, hires: 0.04, attritions: 0.05 },
+        "HR": { headcount: 0.02, hires: 0.02, attritions: 0.02 },
+        "Finance": { headcount: 0.027, hires: 0.02, attritions: 0.02 },
+        "Operations": { headcount: 0.074, hires: 0.06, attritions: 0.05 },
+        "Customer Support": { headcount: 0.049, hires: 0.08, attritions: 0.06 },
+        "Product": { headcount: 0.039, hires: 0.04, attritions: 0.03 },
+    };
+
+    const multiplier = department && departmentMultipliers[department] 
+        ? departmentMultipliers[department] 
+        : { headcount: 1, hires: 1, attritions: 1 };
 
     // Generate data for the last 12 months
     for (let i = 11; i >= 0; i--) {
@@ -96,19 +113,19 @@ export function getHeadcountTrendData() {
         // Generate realistic headcount data (starting around 2,200 and growing)
         const baseHeadcount = 2200;
         const growth = (11 - i) * 20; // Steady growth
-        const headcount = Math.round(baseHeadcount + growth + (Math.random() * 50 - 25));
+        const headcount = Math.round((baseHeadcount + growth + (Math.random() * 50 - 25)) * multiplier.headcount);
         totalHeadcount.push(headcount);
 
         // Generate hires (typically 80-150 per month)
-        const monthlyHires = Math.round(100 + (Math.random() * 70 - 35));
+        const monthlyHires = Math.round((100 + (Math.random() * 70 - 35)) * multiplier.hires);
         hires.push(monthlyHires);
 
         // Generate attritions (typically 20-50 per month)
-        const monthlyAttritions = Math.round(35 + (Math.random() * 30 - 15));
+        const monthlyAttritions = Math.round((35 + (Math.random() * 30 - 15)) * multiplier.attritions);
         attritions.push(monthlyAttritions);
 
         // Previous year data (slightly lower baseline)
-        const prevYearHeadcount = Math.round(baseHeadcount - 200 + (11 - i) * 18 + (Math.random() * 50 - 25));
+        const prevYearHeadcount = Math.round((baseHeadcount - 200 + (11 - i) * 18 + (Math.random() * 50 - 25)) * multiplier.headcount);
         previousYear.push(prevYearHeadcount);
     }
 

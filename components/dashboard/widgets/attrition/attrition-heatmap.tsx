@@ -3,8 +3,17 @@
 import { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { Grid3x3 } from "lucide-react";
+import { Sparkle, CaretRight } from "phosphor-react";
 import type { ApexOptions } from "apexcharts";
 import { getAttritionHeatmapData } from "@/app/data/headcountData";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 
 // Dynamically import ApexCharts to avoid SSR issues
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
@@ -32,10 +41,7 @@ export function AttritionHeatmap() {
                 type: "heatmap",
                 height: 400,
                 toolbar: {
-                    show: true,
-                    tools: {
-                        download: true,
-                    },
+                    show: false,
                 },
             },
             dataLabels: {
@@ -155,6 +161,77 @@ export function AttritionHeatmap() {
                 </p>
             </div>
 
+            {/* High-Risk Areas Banner */}
+            {!isLoading && heatmapData && highRiskCells.length > 0 && (
+                <div className="border-b border-[#d9dede] border-solid relative shrink-0 w-full">
+                    <div className="rotating-gradient-border w-full">
+                        <div className="flex gap-2 items-center p-4 relative z-10">
+                            <Sparkle
+                                className="w-6 h-6 text-[#8139ee] shrink-0"
+                                weight="fill"
+                            />
+                            <p className="flex-1 font-normal grow leading-5 min-w-0 relative shrink-0 text-[#262b2b] text-sm">
+                                High-Risk Areas Detected: {highRiskCells.map((risk, index) => (
+                                    <span key={index}>
+                                        {risk.dept} - {risk.tenure}: {risk.rate.toFixed(1)}%
+                                        {index < highRiskCells.length - 1 ? ", " : ""}
+                                    </span>
+                                ))}
+                            </p>
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <button
+                                        type="button"
+                                        className="bg-white border border-[#b8c1c0] border-solid max-h-9 min-w-[48px] relative rounded-lg shrink-0 hover:bg-gray-50 transition-colors cursor-pointer"
+                                    >
+                                        <div className="box-border flex gap-2 items-center justify-center max-h-inherit min-w-inherit overflow-clip p-2 relative rounded-[inherit]">
+                                            <div className="flex gap-2 items-center justify-center px-1 py-0 relative shrink-0">
+                                                <p className="flex flex-col font-medium justify-center leading-0 relative shrink-0 text-[#262b2b] text-sm text-nowrap tracking-normal">
+                                                    <span className="leading-4 whitespace-pre">
+                                                        Explore Insight
+                                                    </span>
+                                                </p>
+                                            </div>
+                                            <CaretRight
+                                                className="w-3 h-3 text-[#262b2b] shrink-0"
+                                                weight="fill"
+                                            />
+                                        </div>
+                                    </button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-[720px] max-h-[80vh] overflow-y-auto p-0">
+                                    <DialogHeader className="p-4 border-b border-[#d9dede]">
+                                        <DialogTitle>
+                                            High-Risk Attrition Areas
+                                        </DialogTitle>
+                                        <DialogDescription>
+                                            Detailed breakdown of departments and tenure buckets with elevated attrition rates
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="flex flex-col gap-4 items-start p-4 relative shrink-0 w-full">
+                                        <div className="flex flex-col gap-4 items-start relative shrink-0 w-full">
+                                            <h3 className="text-base font-medium text-[#262b2b] leading-5">
+                                                High-Risk Areas Detected
+                                            </h3>
+                                            <ul className="list-disc ml-6 text-base font-normal text-[#5d6c6b] leading-6 space-y-2">
+                                                {highRiskCells.map((risk, index) => (
+                                                    <li key={index}>
+                                                        <strong>{risk.dept}</strong> - {risk.tenure}: <strong>{risk.rate.toFixed(1)}%</strong> attrition rate
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                            <p className="text-base font-normal text-[#5d6c6b] leading-6 w-full">
+                                                These areas show attrition rates above 10%, which may indicate retention challenges. Consider reviewing engagement strategies, compensation, and management practices for these specific department and tenure combinations.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Chart or Loading State */}
             <div className="p-4">
                 {isLoading ? (
@@ -162,28 +239,12 @@ export function AttritionHeatmap() {
                         <p className="text-sm text-[#5d6c6b]">Loading heatmap...</p>
                     </div>
                 ) : heatmapData ? (
-                    <>
-                        <Chart
-                            options={chartOptions}
-                            series={chartSeries}
-                            type="heatmap"
-                            height={400}
-                        />
-                        {highRiskCells.length > 0 && (
-                            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                                <p className="text-sm font-medium text-red-800 mb-2">
-                                    High-Risk Areas Detected:
-                                </p>
-                                <ul className="text-xs text-red-700 space-y-1">
-                                    {highRiskCells.map((risk, index) => (
-                                        <li key={index}>
-                                            {risk.dept} - {risk.tenure}: {risk.rate.toFixed(1)}%
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
-                    </>
+                    <Chart
+                        options={chartOptions}
+                        series={chartSeries}
+                        type="heatmap"
+                        height={400}
+                    />
                 ) : (
                     <div className="flex items-center justify-center h-[400px]">
                         <p className="text-sm text-[#5d6c6b]">No data available</p>

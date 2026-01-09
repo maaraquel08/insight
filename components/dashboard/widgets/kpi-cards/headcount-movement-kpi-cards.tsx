@@ -6,11 +6,6 @@ import { CaretUp, CaretDown, Sparkle } from "phosphor-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useChatSidekick } from "@/components/chatbot-sidekick";
 import { getHeadcountKPIs } from "@/app/data/headcountData";
-import dynamic from "next/dynamic";
-import type { ApexOptions } from "apexcharts";
-
-// Dynamically import ApexCharts for sparkline
-const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
 interface KPICardProps {
     title: string;
@@ -19,7 +14,6 @@ interface KPICardProps {
     change?: string;
     changeType?: "positive" | "negative";
     icon: React.ReactNode;
-    sparklineData?: number[];
     onClick?: () => void;
     description?: string;
     onAskSidekick?: () => void;
@@ -32,7 +26,6 @@ function KPICard({
     change,
     changeType = "positive",
     icon,
-    sparklineData,
     onClick,
     description,
     onAskSidekick,
@@ -51,51 +44,6 @@ function KPICard({
         }
     };
 
-    const sparklineOptions: ApexOptions = useMemo(
-        () => ({
-            chart: {
-                type: "line",
-                sparkline: {
-                    enabled: true,
-                },
-                toolbar: {
-                    show: false,
-                },
-            },
-            stroke: {
-                curve: "smooth",
-                width: 2,
-                colors: [changeType === "positive" ? "#158039" : "#b61f27"],
-            },
-            fill: {
-                type: "solid",
-                colors: [changeType === "positive" ? "#158039" : "#b61f27"],
-            },
-            tooltip: {
-                enabled: false,
-            },
-            grid: {
-                show: false,
-            },
-            xaxis: {
-                labels: {
-                    show: false,
-                },
-                axisBorder: {
-                    show: false,
-                },
-                axisTicks: {
-                    show: false,
-                },
-            },
-            yaxis: {
-                labels: {
-                    show: false,
-                },
-            },
-        }),
-        [changeType]
-    );
 
     return (
         <div
@@ -196,23 +144,6 @@ function KPICard({
                         </p>
                     )}
                 </div>
-
-                {/* Sparkline Chart */}
-                {sparklineData && sparklineData.length > 0 && (
-                    <div className="h-12 -mb-2">
-                        <Chart
-                            options={sparklineOptions}
-                            series={[
-                                {
-                                    name: title,
-                                    data: sparklineData,
-                                },
-                            ]}
-                            type="line"
-                            height={48}
-                        />
-                    </div>
-                )}
 
                 {/* Ask Sidekick Button */}
                 {onAskSidekick && (
@@ -330,7 +261,6 @@ export function HeadcountMovementKPICards() {
                 change={growthRateDisplay}
                 changeType={growthRateChange}
                 icon={<TrendingUp className="w-6 h-6 text-[#738482]" />}
-                sparklineData={kpiData.growthRate.sparkline}
                 description={`Growth rate is ${kpiData.growthRate.current}% compared to target of ${kpiData.growthRate.target}%.`}
                 onAskSidekick={() => handleAskSidekick("Overall Growth Rate", `Target: ${kpiData.growthRate.target}%, Actual: ${kpiData.growthRate.current}%`)}
             />

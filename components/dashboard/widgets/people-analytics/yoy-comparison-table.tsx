@@ -190,29 +190,28 @@ export function YoYComparisonTable() {
         <div className="bg-white rounded-xl border border-[#d9dede] overflow-hidden">
             {/* Card Header */}
             <div className="px-4 py-3 border-b border-[#d9dede]">
-                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                    <div className="flex gap-1 items-center mb-1">
-                        <TableIcon className="w-5 h-5 text-[#738482]" />
-                        <h2 className="text-base font-medium text-[#262b2b]">
-                            Year-over-Year Comparison
-                        </h2>
-                    </div>
-                    <div className="w-full sm:w-auto">
-                        <Input
-                            placeholder="Search departments..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full sm:w-64"
-                        />
-                    </div>
+                <div className="flex gap-1 items-center mb-1">
+                    <TableIcon className="w-5 h-5 text-[#738482]" />
+                    <h2 className="text-base font-medium text-[#262b2b]">
+                        Year-over-Year Comparison
+                    </h2>
                 </div>
-                <p className="text-sm text-[#5d6c6b] mt-2">
+                <p className="text-sm text-[#5d6c6b]">
                     Departmental headcount comparison with trend analysis
                 </p>
             </div>
 
             {/* Table */}
             <div className="p-4 overflow-x-auto">
+                {/* Search Input */}
+                <div className="mb-4">
+                    <Input
+                        placeholder="Search departments..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full"
+                    />
+                </div>
                 {isLoading ? (
                     <div className="flex items-center justify-center h-[400px]">
                         <p className="text-sm text-[#5d6c6b]">Loading table...</p>
@@ -220,7 +219,7 @@ export function YoYComparisonTable() {
                 ) : comparisonData ? (
                     <Table>
                         <TableHeader>
-                            <TableRow>
+                            <TableRow className="border-[#d9dede]">
                                 <TableHead
                                     className="cursor-pointer hover:bg-gray-50"
                                     onClick={() => handleSort("department")}
@@ -264,7 +263,7 @@ export function YoYComparisonTable() {
                         </TableHeader>
                         <TableBody>
                             {sortedAndFilteredData.map((dept: any) => (
-                                <TableRow key={dept.name}>
+                                <TableRow key={dept.name} className="border-[#d9dede]">
                                     <TableCell className="font-medium">
                                         {dept.name}
                                     </TableCell>
@@ -295,7 +294,7 @@ export function YoYComparisonTable() {
                             ))}
                             {/* Totals Row */}
                             {comparisonData.totals && (
-                                <TableRow className="bg-gray-50 font-semibold">
+                                <TableRow className="bg-gray-50 font-semibold border-[#d9dede]">
                                     <TableCell>Total</TableCell>
                                     <TableCell className="text-right">
                                         {comparisonData.totals.currentHeadcount.toLocaleString()}

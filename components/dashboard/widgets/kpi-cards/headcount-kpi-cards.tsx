@@ -6,11 +6,6 @@ import { CaretUp, CaretDown, Sparkle } from "phosphor-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useChatSidekick } from "@/components/chatbot-sidekick";
 import { getHeadcountKPIs } from "@/app/data/headcountData";
-import dynamic from "next/dynamic";
-import type { ApexOptions } from "apexcharts";
-
-// Dynamically import ApexCharts for sparkline
-const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
 interface KPICardProps {
     title: string;
@@ -19,7 +14,6 @@ interface KPICardProps {
     change?: string;
     changeType?: "positive" | "negative";
     icon: React.ReactNode;
-    sparklineData?: number[];
     alert?: boolean;
     onClick?: () => void;
     description?: string;
@@ -33,7 +27,6 @@ function KPICard({
     change,
     changeType = "positive",
     icon,
-    sparklineData,
     alert,
     onClick,
     description,
@@ -53,51 +46,6 @@ function KPICard({
         }
     };
 
-    const sparklineOptions: ApexOptions = useMemo(
-        () => ({
-            chart: {
-                type: "line",
-                sparkline: {
-                    enabled: true,
-                },
-                toolbar: {
-                    show: false,
-                },
-            },
-            stroke: {
-                curve: "smooth",
-                width: 2,
-                colors: [changeType === "positive" ? "#158039" : "#b61f27"],
-            },
-            fill: {
-                type: "solid",
-                colors: [changeType === "positive" ? "#158039" : "#b61f27"],
-            },
-            tooltip: {
-                enabled: false,
-            },
-            grid: {
-                show: false,
-            },
-            xaxis: {
-                labels: {
-                    show: false,
-                },
-                axisBorder: {
-                    show: false,
-                },
-                axisTicks: {
-                    show: false,
-                },
-            },
-            yaxis: {
-                labels: {
-                    show: false,
-                },
-            },
-        }),
-        [changeType]
-    );
 
     return (
         <div
@@ -201,23 +149,6 @@ function KPICard({
                             </p>
                         )}
                     </div>
-
-                    {/* Sparkline Chart */}
-                    {sparklineData && sparklineData.length > 0 && (
-                        <div className="h-12 -mb-2">
-                            <Chart
-                                options={sparklineOptions}
-                                series={[
-                                    {
-                                        name: title,
-                                        data: sparklineData,
-                                    },
-                                ]}
-                                type="line"
-                                height={48}
-                            />
-                        </div>
-                    )}
 
                     {/* Ask Sidekick Button */}
                     {onAskSidekick && (

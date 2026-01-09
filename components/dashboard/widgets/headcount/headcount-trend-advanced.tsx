@@ -5,24 +5,46 @@ import dynamic from "next/dynamic";
 import { LineChart } from "lucide-react";
 import type { ApexOptions } from "apexcharts";
 import { getHeadcountTrendData } from "@/app/data/headcountData";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 // Dynamically import ApexCharts to avoid SSR issues
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
+const DEPARTMENTS = [
+    "All Departments",
+    "Engineering",
+    "Sales",
+    "Marketing",
+    "HR",
+    "Finance",
+    "Operations",
+    "Customer Support",
+    "Product",
+];
+
 export function HeadcountTrendAdvanced() {
     const [isLoading, setIsLoading] = useState(true);
     const [trendData, setTrendData] = useState<any>(null);
+    const [selectedDepartment, setSelectedDepartment] = useState<string>("All Departments");
 
     useEffect(() => {
+        setIsLoading(true);
         // Simulate loading state on mount
         const timer = setTimeout(() => {
-            const data = getHeadcountTrendData();
+            const department = selectedDepartment === "All Departments" ? undefined : selectedDepartment;
+            const data = getHeadcountTrendData(department);
             setTrendData(data);
             setIsLoading(false);
         }, 500);
 
         return () => clearTimeout(timer);
-    }, []);
+    }, [selectedDepartment]);
 
     const chartOptions: ApexOptions = useMemo(() => {
         if (!trendData) {
@@ -34,16 +56,7 @@ export function HeadcountTrendAdvanced() {
                 type: "line",
                 height: 400,
                 toolbar: {
-                    show: true,
-                    tools: {
-                        download: true,
-                        selection: true,
-                        zoom: true,
-                        zoomin: true,
-                        zoomout: true,
-                        pan: true,
-                        reset: true,
-                    },
+                    show: false,
                 },
                 zoom: {
                     enabled: true,
@@ -133,7 +146,7 @@ export function HeadcountTrendAdvanced() {
                 },
             },
             legend: {
-                position: "top",
+                position: "bottom",
                 horizontalAlign: "right",
                 fontSize: "12px",
                 labels: {
@@ -211,6 +224,25 @@ export function HeadcountTrendAdvanced() {
 
             {/* Chart or Loading State */}
             <div className="p-4">
+                {/* Department Filter Dropdown */}
+                <div className="mb-4">
+                    <Select
+                        value={selectedDepartment}
+                        onValueChange={setSelectedDepartment}
+                    >
+                        <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {DEPARTMENTS.map((dept) => (
+                                <SelectItem key={dept} value={dept}>
+                                    {dept}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
                 {isLoading ? (
                     <div className="flex items-center justify-center h-[400px]">
                         <p className="text-sm text-[#5d6c6b]">Loading chart...</p>

@@ -31,7 +31,7 @@ export function CompanyHealthCard({ score = 82 }: CompanyHealthCardProps) {
         ],
         colors: ["#158039", "#8139ee", "#f59e0b", "#3b82f6", "#ef4444"],
         dataLabels: {
-            enabled: true,
+            enabled: false,
         },
         legend: {
             show: false,
