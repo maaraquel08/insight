@@ -93,6 +93,7 @@ export function DepartureReason() {
     );
 
     // Get color for each reason based on type and order
+    // Colors match the pie chart: Green for Voluntary (Resigned), Red for Involuntary (Terminated/AWOL)
     const getReasonColor = useMemo(() => {
         if (!departureData) return () => "#5d6c6b";
 
@@ -103,24 +104,24 @@ export function DepartureReason() {
             (r) => r.type === "Terminated"
         );
 
-        // Shades of blue: dark to light for Resigned
-        const blueShades = ["#1e40af", "#3b82f6", "#60a5fa", "#93c5fd"];
-        // Shades of red: dark to light for Terminated
-        const redShades = ["#dc2626", "#ef4444", "#f87171"];
+        // Shades of green (matching pie chart #158039): dark to light for Resigned (Voluntary)
+        const greenShades = ["#158039", "#22c55e", "#4ade80", "#86efac"];
+        // Shades of red (matching pie chart #ef4444): dark to light for Terminated (Involuntary)
+        const redShades = ["#ef4444", "#f87171", "#fca5a5"];
 
         return (reason: string, type: string) => {
             if (type === "Resigned") {
                 const index = resignedReasons.findIndex(
                     (r) => r.reason === reason
                 );
-                return blueShades[index % blueShades.length];
+                return greenShades[index % greenShades.length];
             } else if (type === "Terminated") {
                 const index = terminatedReasons.findIndex(
                     (r) => r.reason === reason
                 );
                 return redShades[index % redShades.length];
             } else if (type === "AWOL") {
-                return "#fca5a5"; // Light red/pink for AWOL
+                return "#fecaca"; // Light red for AWOL (involuntary)
             }
             return "#5d6c6b"; // Default gray
         };
