@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { DashboardContainer } from "@/components/dashboard/layout/dashboard-container";
 import { PersonalizeHeader } from "@/components/dashboard/layout/personalize-header";
 import { FloatingChatSidekick } from "@/components/chatbot-sidekick";
@@ -9,11 +10,19 @@ import { TenureDemographics } from "@/components/dashboard/widgets/people-analyt
 import { SupervisorPerformanceRanking } from "@/components/dashboard/widgets/people-analytics/supervisor-performance-ranking";
 import { AttritionByDepartment } from "@/components/dashboard/widgets/attrition/attrition-by-department";
 import { DepartureReason } from "@/components/dashboard/widgets/attrition/departure-reason";
+import { AIOverview } from "@/components/dashboard/ai-overview";
 import { Users } from "lucide-react";
 import { useChatSidekick } from "@/components/chatbot-sidekick";
 import { DraggableWidgetWrapper } from "@/components/dashboard/draggable-widget-wrapper";
 import { MasonryGrid, masonryItemStyle } from "@/components/dashboard/layout/masonry-grid";
 import type { WidgetLayout } from "@/types/dashboard";
+// @ts-ignore - JavaScript file
+import {
+    getAttritionTrendData,
+    getTenureDemographicsData,
+    getDepartmentAttritionData,
+    getDepartureReasonData,
+} from "@/app/data/attritionData";
 
 function AttritionMetricCards() {
     const { openChat } = useChatSidekick();
@@ -227,6 +236,71 @@ function AttritionWidgets() {
 }
 
 export default function AttritionDashboardPage() {
+    // Collect all dashboard data for AI Overview
+    const dashboardData = useMemo(() => {
+        const trendData = getAttritionTrendData() as {
+            currentRate: string;
+            changeType: string;
+            description: string;
+        };
+        const tenureData = getTenureDemographicsData() as {
+            tenureDistribution: { categories: string[]; values: number[] };
+            demographics: { age: { categories: string[]; values: number[] } };
+        };
+        const departmentData = getDepartmentAttritionData() as {
+            categories: string[];
+            values: number[];
+        };
+        const departureData = getDepartureReasonData() as {
+            voluntaryInvoluntary: { labels: string[]; values: number[] };
+            specificReasons: Array<{ reason: string; percentage: number }>;
+        };
+
+        return {
+            metrics: {
+                overallAttrition: {
+                    value: "6.5%",
+                    change: "-0.8% vs last period",
+                    changeType: "positive",
+                },
+                totalSeparations: {
+                    value: "187",
+                    change: "-12 vs last period",
+                    changeType: "positive",
+                },
+                averageTenure: {
+                    value: "2.8 Years",
+                    change: "+0.2 years vs last period",
+                    changeType: "positive",
+                },
+                voluntaryTurnover: {
+                    value: "68.4%",
+                    change: "+2.3% vs last period",
+                    changeType: "negative",
+                },
+            },
+            trends: {
+                currentRate: trendData.currentRate,
+                trendDirection: trendData.changeType === "positive" ? "decreasing" : "increasing",
+                description: trendData.description,
+            },
+            departments: {
+                categories: departmentData.categories,
+                values: departmentData.values,
+            },
+            demographics: {
+                tenure: tenureData.tenureDistribution,
+                age: tenureData.demographics.age,
+            },
+            departureReasons: {
+                voluntaryInvoluntary: departureData.voluntaryInvoluntary,
+                topReasons: departureData.specificReasons
+                    .sort((a: any, b: any) => b.percentage - a.percentage)
+                    .slice(0, 5),
+            },
+        };
+    }, []);
+
     return (
         <DashboardContainer userId="user-1" role="admin">
             <main className="bg-[#f1f2f3] min-h-screen flex flex-col">
@@ -236,6 +310,9 @@ export default function AttritionDashboardPage() {
                             title="Attrition"
                             description="Analytics dashboard for attrition insights and trends"
                         />
+
+                        {/* AI Overview Section */}
+                        <AIOverview dashboardData={dashboardData} />
 
                         {/* Metric Cards Section */}
                         <AttritionMetricCards />
