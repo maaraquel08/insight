@@ -25,20 +25,44 @@ interface SupervisorPerformanceData {
 }
 
 function Avatar({ name }: { name: string }) {
-    // Generate avatar URL using UI Avatars service
-    const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-        name
-    )}&background=random&size=24&bold=true&color=fff`;
+    // Generate a consistent hash from the name to get the same photo for each person
+    const getHash = (str: string): number => {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = (hash << 5) - hash + char;
+            hash = hash & hash; // Convert to 32-bit integer
+        }
+        return Math.abs(hash);
+    };
+
+    // Use the hash to get a consistent photo index
+    // Using randomuser.me which provides real person photos
+    const photoIndex = useMemo(() => {
+        return getHash(name) % 99; // randomuser.me has photos indexed 0-98
+    }, [name]);
+
+    // Determine gender based on hash for variety (alternate between men and women)
+    const gender = useMemo(() => {
+        return getHash(name) % 2 === 0 ? 'men' : 'women';
+    }, [name]);
+
+    // Use randomuser.me API for real person photos
+    const avatarUrl = useMemo(() => {
+        return `https://randomuser.me/api/portraits/${gender}/${photoIndex}.jpg`;
+    }, [gender, photoIndex]);
 
     return (
-        <Image
-            src={avatarUrl}
-            alt={name}
-            width={32}
-            height={32}
-            className=" rounded-full shrink-0 object-cover"
-            unoptimized
-        />
+        <div className="w-8 h-8 rounded-full shrink-0 overflow-hidden bg-gray-100 flex items-center justify-center">
+            <Image
+                src={avatarUrl}
+                alt={name}
+                width={32}
+                height={32}
+                className="rounded-full shrink-0 object-cover"
+                unoptimized
+            />
+        </div>
     );
 }
 
