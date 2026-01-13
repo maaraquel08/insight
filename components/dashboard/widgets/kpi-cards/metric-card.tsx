@@ -22,6 +22,17 @@ export function MetricCard({
     const defaultIcon = <Clock className="w-5 h-5 text-[#738482]" />;
     const displayIcon = icon || defaultIcon;
 
+    // Extract change direction from change text
+    // Examples: "+3.1%", "-2.3%", "↑ 1.5%", "↓ 2.3%"
+    const getChangeDirection = (text: string): boolean => {
+        if (!text) return true;
+        const hasUpArrow = text.includes("↑") || text.includes("+");
+        const hasDownArrow = text.includes("↓") || text.startsWith("-");
+        return hasUpArrow || (!hasDownArrow && !text.startsWith("-"));
+    };
+
+    const isIncrease = change ? getChangeDirection(change) : true;
+
     return (
         <div className="bg-white rounded-xl border border-[#d9dede] p-4">
             <div className="flex flex-col gap-4">
@@ -39,7 +50,7 @@ export function MetricCard({
                                     : "bg-red-50 text-red-700"
                             }`}
                         >
-                            {changeType === "positive" ? (
+                            {isIncrease ? (
                                 <TrendingUp className="h-4 w-4" />
                             ) : (
                                 <TrendingDown className="h-4 w-4" />

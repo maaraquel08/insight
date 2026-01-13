@@ -23,13 +23,64 @@ export function ExecutiveSnapshotCard({
     description,
     onAskSidekick,
 }: ExecutiveSnapshotCardProps) {
-    // Extract percentage from change text (e.g., "3.1% vs last period" -> "3.1%")
-    const extractPercentage = (text: string): string => {
-        const match = text.match(/([\d.]+%)/);
-        return match ? match[1] : "";
+    // Extract percentage and determine direction from change text
+    // Examples: "+3.1% vs last period" -> { value: "3.1%", isIncrease: true }
+    //           "-2.3% vs last period" -> { value: "2.3%", isIncrease: false }
+    //           "↑ 1.5% vs last period" -> { value: "1.5%", isIncrease: true }
+    //           "↓ 2.3 pts vs last period" -> { value: "2.3 pts", isIncrease: false }
+    //           "-12 vs last period" -> { value: "12", isIncrease: false }
+    //           "+0.2 years vs last period" -> { value: "0.2 years", isIncrease: true }
+    const extractChangeInfo = (text: string): { value: string; isIncrease: boolean } => {
+        if (!text) return { value: "", isIncrease: true };
+        
+        // Check for arrow symbols first
+        const hasUpArrow = text.includes("↑");
+        const hasDownArrow = text.includes("↓");
+        
+        // Determine direction: check for explicit sign first, then arrow symbols
+        // Look for + or - sign before the number
+        const signMatch = text.match(/([+-])\s*[\d.]/);
+        const hasPlusSign = signMatch?.[1] === "+";
+        const hasMinusSign = signMatch?.[1] === "-";
+        
+        // Determine if it's an increase: arrow up, plus sign, or no down arrow/minus sign
+        const isIncrease = hasUpArrow || hasPlusSign || (!hasDownArrow && !hasMinusSign);
+        
+        // Try matching different patterns in order of specificity:
+        // 1. Number with % or pts: "5.1%", "2.3 pts"
+        let numberUnitMatch = text.match(/([\d.]+)\s*(%|pts\b)/i);
+        if (numberUnitMatch) {
+            const number = numberUnitMatch[1];
+            const unit = numberUnitMatch[2].toLowerCase();
+            const value = `${number}${unit === "pts" ? " pts" : "%"}`;
+            return { value, isIncrease };
+        }
+        
+        // 2. Number with other units like "years": "+0.2 years"
+        const yearMatch = text.match(/([+-])?\s*([\d.]+)\s*(years?|months?|days?|weeks?)/i);
+        if (yearMatch) {
+            const number = yearMatch[2];
+            const unit = yearMatch[3].toLowerCase();
+            return { value: `${number} ${unit}`, isIncrease };
+        }
+        
+        // 3. Plain number with sign: "-12", "+5"
+        const plainNumberMatch = text.match(/([+-])\s*([\d.]+)(?:\s+vs|\s*$)/i);
+        if (plainNumberMatch) {
+            const number = plainNumberMatch[2];
+            return { value: number, isIncrease };
+        }
+        
+        // 4. Just a number before "vs": "12 vs last period"
+        const simpleMatch = text.match(/([\d.]+)\s+vs/i);
+        if (simpleMatch) {
+            return { value: simpleMatch[1], isIncrease };
+        }
+        
+        return { value: "", isIncrease: true };
     };
 
-    const percentage = extractPercentage(change);
+    const { value: percentage, isIncrease } = extractChangeInfo(change);
     const handleAskSidekick = () => {
         if (onAskSidekick) {
             onAskSidekick();
@@ -123,18 +174,26 @@ export function ExecutiveSnapshotCard({
                                                 : "bg-[#fee2e2] border-[#b61f27]"
                                         }`}
                                     >
-                                        {changeType === "positive" ? (
+                                        {isIncrease ? (
                                             <CaretUp
                                                 weight="fill"
-                                                className="w-3 h-3 text-[#158039] shrink-0"
+                                                className={`w-3 h-3 shrink-0 ${
+                                                    changeType === "positive"
+                                                        ? "text-[#158039]"
+                                                        : "text-[#b61f27]"
+                                                }`}
                                             />
                                         ) : (
                                             <CaretDown
                                                 weight="fill"
-                                                className="w-3 h-3 text-[#b61f27] shrink-0"
+                                                className={`w-3 h-3 shrink-0 ${
+                                                    changeType === "positive"
+                                                        ? "text-[#158039]"
+                                                        : "text-[#b61f27]"
+                                                }`}
                                             />
                                         )}
-                                        {percentage && (
+                                        {percentage ? (
                                             <p
                                                 className={`text-xs font-medium leading-3 uppercase tracking-[0.7px] whitespace-nowrap ${
                                                     changeType === "positive"
@@ -144,7 +203,7 @@ export function ExecutiveSnapshotCard({
                                             >
                                                 {percentage}
                                             </p>
-                                        )}
+                                        ) : null}
                                     </div>
                                 </TooltipTrigger>
                                 <TooltipContent
