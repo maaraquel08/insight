@@ -19,6 +19,7 @@ interface ColumnContextType {
     toggleColumn: (columnId: string, checked: boolean) => void;
     visibleColumns: Column[];
     reorderColumns: (startIndex: number, endIndex: number) => void;
+    clearAllColumns: () => void;
 }
 
 const ColumnContext = createContext<ColumnContextType | undefined>(undefined);
@@ -295,6 +296,17 @@ export function ColumnProvider({ children }: { children: ReactNode }) {
         return visible;
     }, [allColumns, selectedColumns, columnAddOrder, columnOrder]);
 
+    // Clear all columns function
+    const clearAllColumns = () => {
+        const cleared: Record<string, boolean> = {};
+        allColumns.forEach((col) => {
+            cleared[col.id] = false;
+        });
+        setSelectedColumns(cleared);
+        setColumnOrder(null);
+        setColumnAddOrder([]);
+    };
+
     return (
         <ColumnContext.Provider
             value={{
@@ -304,6 +316,7 @@ export function ColumnProvider({ children }: { children: ReactNode }) {
                 toggleColumn,
                 visibleColumns,
                 reorderColumns,
+                clearAllColumns,
             }}
         >
             {children}

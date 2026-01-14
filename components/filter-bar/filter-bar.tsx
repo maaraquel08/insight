@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ChipsFilter } from "@/components/ui/chips-filter";
 import { useFilters } from "@/contexts/filter-context";
+import { useColumns } from "@/contexts/column-context";
 import type { Filter as FilterType } from "@/components/ui/filters";
 import type { FilterRule, FilterStep } from "./types";
 import {
@@ -58,8 +59,12 @@ export function FilterBar() {
     // ========================================================================
 
     const { filters, setFilters } = useFilters();
+    const { clearAllColumns, visibleColumns } = useColumns();
     const allColumns = getAvailableColumns();
     const tableData = useTableData();
+
+    // Check if any columns are selected
+    const hasSelectedColumns = visibleColumns.length > 0;
 
     // Popover state
     const [addFilterPopoverOpen, setAddFilterPopoverOpen] = useState(false);
@@ -478,15 +483,18 @@ export function FilterBar() {
                 <Button
                     variant="outline"
                     size="sm"
-                    className="h-9 border-[#b8c1c0] text-xs font-medium text-[#262b2b]"
+                    className="h-9 border-[#b8c1c0] text-xs font-medium text-[#262b2b] hover:bg-[#f1f2f3] disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={clearAllColumns}
+                    disabled={!hasSelectedColumns}
                 >
-                    Share
+                    Clear All
                 </Button>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button
-                            className="bg-[#158039] hover:bg-[#158039]/90 text-white h-9 px-2 text-xs font-medium"
+                            className="bg-[#158039] hover:bg-[#158039]/90 text-white h-9 px-2 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                             size="sm"
+                            disabled={!hasSelectedColumns}
                         >
                             Download
                             <ChevronDown className="w-3 h-3 ml-1" />

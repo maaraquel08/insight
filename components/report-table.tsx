@@ -468,32 +468,53 @@ export function ReportTable() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {tableRows.map((row, rowIndex) => (
-                            <TableRow
-                                key={rowIndex}
-                                className="border-b border-[#d9dede] hover:bg-[#f1f2f3] transition-colors"
-                            >
-                                {row.map((cell, cellIndex) => (
-                                    <TableCell
-                                        key={cellIndex}
-                                        className="text-sm text-[#262b2b] whitespace-nowrap px-4 py-4"
-                                        title={cell}
-                                    >
-                                        {cell}
-                                    </TableCell>
-                                ))}
+                        {visibleColumns.length === 0 ? (
+                            <TableRow>
+                                <TableCell
+                                    colSpan={1}
+                                    className="text-center py-16 px-4"
+                                >
+                                    <div className="flex flex-col items-center justify-center gap-2 text-[#5d6c6b]">
+                                        <p className="text-sm font-medium">
+                                            No columns selected
+                                        </p>
+                                        <p className="text-xs">
+                                            Please select data from the side
+                                            panel to view your report
+                                        </p>
+                                    </div>
+                                </TableCell>
                             </TableRow>
-                        ))}
-                        <TableRow className="border-t-2 border-[#d9dede]">
-                            {visibleColumns.map((col) => (
-                                <ComputeCell
-                                    key={col.id}
-                                    columnId={col.id}
-                                    columnLabel={col.label}
-                                    data={sortedEmployees}
-                                />
-                            ))}
-                        </TableRow>
+                        ) : (
+                            <>
+                                {tableRows.map((row, rowIndex) => (
+                                    <TableRow
+                                        key={rowIndex}
+                                        className="border-b border-[#d9dede] hover:bg-[#f1f2f3] transition-colors"
+                                    >
+                                        {row.map((cell, cellIndex) => (
+                                            <TableCell
+                                                key={cellIndex}
+                                                className="text-sm text-[#262b2b] whitespace-nowrap px-4 py-4"
+                                                title={cell}
+                                            >
+                                                {cell}
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))}
+                                <TableRow className="border-t-2 border-[#d9dede]">
+                                    {visibleColumns.map((col) => (
+                                        <ComputeCell
+                                            key={col.id}
+                                            columnId={col.id}
+                                            columnLabel={col.label}
+                                            data={sortedEmployees}
+                                        />
+                                    ))}
+                                </TableRow>
+                            </>
+                        )}
                     </TableBody>
                 </table>
             </DndContext>

@@ -162,8 +162,8 @@ export function ReportSidebar() {
             {/* Collapsible Lists */}
             <div className="flex-1 overflow-y-auto p-4 min-h-0">
                 <div className="space-y-0">
-                    {Object.entries(mainSections).map(
-                        ([sectionTitle, categories]) => {
+                    {Object.entries(mainSections)
+                        .map(([sectionTitle, categories]) => {
                             const sectionColumns = categories
                                 .flatMap(
                                     (category) =>
@@ -175,15 +175,21 @@ export function ReportSidebar() {
                                     return !col.isDependentOf;
                                 });
 
-                            if (sectionColumns.length === 0) return null;
+                            return {
+                                sectionTitle,
+                                sectionColumns,
+                            };
+                        })
+                        .filter(({ sectionColumns }) => sectionColumns.length > 0)
+                        .map(({ sectionTitle, sectionColumns }, index) => {
+                            // First rendered section should be open by default
+                            const isFirstSection = index === 0;
 
                             return (
                                 <CollapsibleSection
                                     key={sectionTitle}
                                     title={sectionTitle}
-                                    defaultOpen={
-                                        sectionTitle === "Contact Info"
-                                    }
+                                    defaultOpen={isFirstSection}
                                 >
                                     <div className="space-y-0">
                                         {sectionColumns.map((col) => {
@@ -247,8 +253,7 @@ export function ReportSidebar() {
                                     </div>
                                 </CollapsibleSection>
                             );
-                        }
-                    )}
+                        })}
                 </div>
             </div>
         </div>
