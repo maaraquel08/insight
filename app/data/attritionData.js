@@ -185,6 +185,160 @@ export function getDepartmentAttritionData() {
 }
 
 /**
+ * Generate department attrition data with job role breakdown
+ * Each department has specific job titles relevant to that department
+ * @returns {Array} Array of department data with job role separations and totals
+ */
+export function getDepartmentAttritionWithJobRoles() {
+    const departmentData = [
+        {
+            department: "Sales",
+            size: 580,
+            rate: 9.8,
+            roles: [
+                { key: "role1", label: "Sales Manager", pct: 0.15 },
+                { key: "role2", label: "Account Executive", pct: 0.55 },
+                { key: "role3", label: "Sales Representative", pct: 0.30 },
+            ],
+        },
+        {
+            department: "Customer Service",
+            size: 690,
+            rate: 8.5,
+            roles: [
+                { key: "role1", label: "Team Lead", pct: 0.12 },
+                { key: "role2", label: "CS Representative", pct: 0.75 },
+                { key: "role3", label: "Quality Analyst", pct: 0.13 },
+            ],
+        },
+        {
+            department: "Operations",
+            size: 460,
+            rate: 7.2,
+            roles: [
+                { key: "role1", label: "Operations Manager", pct: 0.18 },
+                { key: "role2", label: "Coordinator", pct: 0.52 },
+                { key: "role3", label: "Process Analyst", pct: 0.30 },
+            ],
+        },
+        {
+            department: "IT",
+            size: 230,
+            rate: 6.5,
+            roles: [
+                { key: "role1", label: "IT Manager", pct: 0.15 },
+                { key: "role2", label: "Developer", pct: 0.50 },
+                { key: "role3", label: "Data Analyst", pct: 0.35 },
+            ],
+        },
+        {
+            department: "HR",
+            size: 115,
+            rate: 5.8,
+            roles: [
+                { key: "role1", label: "HR Manager", pct: 0.22 },
+                { key: "role2", label: "Recruiter", pct: 0.55 },
+                { key: "role3", label: "HR Specialist", pct: 0.23 },
+            ],
+        },
+        {
+            department: "Finance",
+            size: 92,
+            rate: 4.2,
+            roles: [
+                { key: "role1", label: "Finance Manager", pct: 0.20 },
+                { key: "role2", label: "Accountant", pct: 0.35 },
+                { key: "role3", label: "Financial Analyst", pct: 0.45 },
+            ],
+        },
+        {
+            department: "Other",
+            size: 133,
+            rate: 7.5,
+            roles: [
+                { key: "role1", label: "Supervisor", pct: 0.18 },
+                { key: "role2", label: "Specialist", pct: 0.55 },
+                { key: "role3", label: "Assistant", pct: 0.27 },
+            ],
+        },
+    ];
+
+    return departmentData.map((dept) => {
+        const totalSeparations = Math.round((dept.size * dept.rate) / 100);
+        let remaining = totalSeparations;
+        const roleValues = {};
+
+        // Calculate separations per role
+        dept.roles.forEach((role, idx) => {
+            if (idx === dept.roles.length - 1) {
+                roleValues[role.key] = remaining;
+            } else {
+                const count = Math.round(totalSeparations * role.pct);
+                roleValues[role.key] = count;
+                remaining -= count;
+            }
+        });
+
+        return {
+            department: dept.department,
+            ...roleValues,
+            separations: totalSeparations,
+            rate: dept.rate,
+            // Include role labels for tooltip display
+            roleLabels: dept.roles.reduce((acc, role) => {
+                acc[role.key] = role.label;
+                return acc;
+            }, {}),
+        };
+    });
+}
+
+/**
+ * Generate department voluntary vs involuntary attrition data
+ * @returns {Array} Array of department data with voluntary/involuntary breakdown
+ */
+export function getDepartmentVoluntaryInvoluntary() {
+    const departments = [
+        "Sales",
+        "Customer Service",
+        "Operations",
+        "IT",
+        "HR",
+        "Finance",
+        "Other",
+    ];
+    const departmentSizes = [580, 690, 460, 230, 115, 92, 133];
+    const attritionRates = [9.8, 8.5, 7.2, 6.5, 5.8, 4.2, 7.5];
+
+    // Voluntary percentage of total attrition per department
+    // Higher voluntary rates in Sales/Customer Service, lower in IT/Finance
+    const voluntaryPercentages = [0.72, 0.70, 0.68, 0.65, 0.62, 0.60, 0.66];
+
+    return departments.map((department, index) => {
+        const totalEmployees = departmentSizes[index];
+        const rate = attritionRates[index];
+        const totalSeparations = Math.round((totalEmployees * rate) / 100);
+        const voluntaryPct = voluntaryPercentages[index];
+        const involuntaryPct = 1 - voluntaryPct;
+
+        const voluntaryCount = Math.round(totalSeparations * voluntaryPct);
+        const involuntaryCount = totalSeparations - voluntaryCount;
+        const voluntaryRate = (voluntaryCount / totalEmployees) * 100;
+        const involuntaryRate = (involuntaryCount / totalEmployees) * 100;
+
+        return {
+            department,
+            voluntary: parseFloat(voluntaryRate.toFixed(1)),
+            involuntary: parseFloat(involuntaryRate.toFixed(1)),
+            voluntaryCount,
+            involuntaryCount,
+            totalSeparations,
+            rate,
+        };
+    });
+}
+
+/**
  * Generate supervisor performance ranking data
  * @returns {Array} Array of supervisor performance data (top 10)
  */
