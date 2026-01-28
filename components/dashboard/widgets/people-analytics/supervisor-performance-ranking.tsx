@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { Award, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
-// @ts-ignore - JavaScript file
 import { getSupervisorPerformanceRankingData } from "@/app/data/attritionData";
+import { useAttritionFilters } from "@/contexts/attrition-filter-context";
 import {
     Table,
     TableBody,
@@ -120,6 +120,7 @@ type SortColumn =
 type SortDirection = "asc" | "desc" | null;
 
 export function SupervisorPerformanceRanking() {
+    const { filters } = useAttritionFilters();
     const [data, setData] = useState<SupervisorPerformanceData[]>([]);
     const [sortColumn, setSortColumn] = useState<SortColumn>(null);
     const [sortDirection, setSortDirection] = useState<SortDirection>(null);
@@ -127,9 +128,9 @@ export function SupervisorPerformanceRanking() {
 
     useEffect(() => {
         const rankingData =
-            getSupervisorPerformanceRankingData() as SupervisorPerformanceData[];
+            getSupervisorPerformanceRankingData(filters) as SupervisorPerformanceData[];
         setData(rankingData);
-    }, []);
+    }, [filters]);
 
     const handleSort = (column: SortColumn) => {
         if (sortColumn !== column) {

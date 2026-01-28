@@ -12,8 +12,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-// @ts-ignore - JavaScript file
 import { getAttritionTrendData } from "@/app/data/attritionData";
+import { useAttritionFilters } from "@/contexts/attrition-filter-context";
 
 // Dynamically import ApexCharts to avoid SSR issues
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
@@ -26,6 +26,7 @@ interface AttritionTrendData {
 type TimePeriod = "monthly" | "quarterly" | "yearly";
 
 export function AttritionTrendChart() {
+    const { filters } = useAttritionFilters();
     const [allData, setAllData] = useState<AttritionTrendData | null>(null);
     const [timePeriod, setTimePeriod] = useState<TimePeriod>("monthly");
     const [showForesight, setShowForesight] = useState(false);
@@ -36,13 +37,13 @@ export function AttritionTrendChart() {
     const [lastInsightKey, setLastInsightKey] = useState("");
 
     useEffect(() => {
-        const trendData = getAttritionTrendData() as any;
+        const trendData = getAttritionTrendData(filters);
         const fullData = {
             labels: trendData.labels,
             series: trendData.series,
         };
         setAllData(fullData);
-    }, []);
+    }, [filters]);
 
     // Process data based on selected time period
     const data = useMemo(() => {

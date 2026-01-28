@@ -5,12 +5,12 @@ import dynamic from "next/dynamic";
 import { Building2 } from "lucide-react";
 import type { ApexOptions } from "apexcharts";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-// @ts-ignore - JavaScript file
 import {
     getDepartmentAttritionData,
     getDepartmentAttritionWithJobRoles,
     getDepartmentVoluntaryInvoluntary,
 } from "@/app/data/attritionData";
+import { useAttritionFilters } from "@/contexts/attrition-filter-context";
 
 // Dynamically import ApexCharts to avoid SSR issues
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
@@ -41,6 +41,7 @@ interface VoluntaryInvoluntaryData {
 }
 
 export function AttritionByDepartment() {
+    const { filters } = useAttritionFilters();
     const [departmentData, setDepartmentData] =
         useState<DepartmentAttritionData | null>(null);
     const [jobRoleData, setJobRoleData] = useState<JobRoleData[]>([]);
@@ -49,16 +50,16 @@ export function AttritionByDepartment() {
     >([]);
 
     useEffect(() => {
-        const defaultData = getDepartmentAttritionData() as DepartmentAttritionData;
+        const defaultData = getDepartmentAttritionData(filters) as DepartmentAttritionData;
         setDepartmentData(defaultData);
 
-        const jobRoles = getDepartmentAttritionWithJobRoles() as JobRoleData[];
+        const jobRoles = getDepartmentAttritionWithJobRoles(filters) as JobRoleData[];
         setJobRoleData(jobRoles);
 
         const volInvData =
-            getDepartmentVoluntaryInvoluntary() as VoluntaryInvoluntaryData[];
+            getDepartmentVoluntaryInvoluntary(filters) as VoluntaryInvoluntaryData[];
         setVoluntaryInvoluntaryData(volInvData);
-    }, []);
+    }, [filters]);
 
     // Calculate dynamic chart height based on number of categories
     const calculateChartHeight = (categories: string[]) => {

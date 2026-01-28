@@ -248,3 +248,8 @@
     z-index: 1;
     pointer-events: none;
 }
+
+/* ApexCharts foreignobject height fix */
+svg foreignObject {
+    height: fit-content !important;
+}

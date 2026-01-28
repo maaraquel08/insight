@@ -11,12 +11,13 @@ import { SupervisorPerformanceRanking } from "@/components/dashboard/widgets/peo
 import { AttritionByDepartment } from "@/components/dashboard/widgets/attrition/attrition-by-department";
 import { DepartureReason } from "@/components/dashboard/widgets/attrition/departure-reason";
 import { AIOverview } from "@/components/dashboard/ai-overview";
+import { AttritionFilters } from "@/components/dashboard/attrition-filters";
+import { AttritionFilterProvider, useAttritionFilters } from "@/contexts/attrition-filter-context";
 import { Users } from "lucide-react";
 import { useChatSidekick } from "@/components/chatbot-sidekick";
 import { DraggableWidgetWrapper } from "@/components/dashboard/draggable-widget-wrapper";
 import { MasonryGrid, masonryItemStyle } from "@/components/dashboard/layout/masonry-grid";
 import type { WidgetLayout } from "@/types/dashboard";
-// @ts-ignore - JavaScript file
 import {
     getAttritionTrendData,
     getTenureDemographicsData,
@@ -235,23 +236,25 @@ function AttritionWidgets() {
     );
 }
 
-export default function AttritionDashboardPage() {
+function AttritionDashboardContent() {
+    const { filters } = useAttritionFilters();
+    
     // Collect all dashboard data for AI Overview
     const dashboardData = useMemo(() => {
-        const trendData = getAttritionTrendData() as {
+        const trendData = getAttritionTrendData(filters) as {
             currentRate: string;
             changeType: string;
             description: string;
         };
-        const tenureData = getTenureDemographicsData() as {
+        const tenureData = getTenureDemographicsData(filters) as {
             tenureDistribution: { categories: string[]; values: number[] };
             demographics: { age: { categories: string[]; values: number[] } };
         };
-        const departmentData = getDepartmentAttritionData() as {
+        const departmentData = getDepartmentAttritionData(filters) as {
             categories: string[];
             values: number[];
         };
-        const departureData = getDepartureReasonData() as {
+        const departureData = getDepartureReasonData(filters) as {
             voluntaryInvoluntary: { labels: string[]; values: number[] };
             specificReasons: Array<{ reason: string; percentage: number }>;
         };
@@ -299,32 +302,43 @@ export default function AttritionDashboardPage() {
                     .slice(0, 5),
             },
         };
-    }, []);
+    }, [filters]);
 
     return (
-        <DashboardContainer userId="user-1" role="admin">
-            <main className="bg-[#f1f2f3] min-h-screen flex flex-col">
-                <div className="flex flex-col gap-6 p-10 flex-1">
-                    <div className="flex flex-col gap-6 items-start max-w-[1320px] w-full mx-auto">
-                        <PersonalizeHeader
-                            title="Attrition"
-                            description="Analytics dashboard for attrition insights and trends"
-                        />
+        <main className="bg-[#f1f2f3] min-h-screen flex flex-col">
+            <div className="flex flex-col gap-6 p-10 flex-1">
+                <div className="flex flex-col gap-6 items-start max-w-[1320px] w-full mx-auto">
+                    <PersonalizeHeader
+                        title="Attrition"
+                        description="Analytics dashboard for attrition insights and trends"
+                    />
 
-                        {/* AI Overview Section */}
-                        <AIOverview dashboardData={dashboardData} />
+                    {/* AI Overview Section */}
+                    <AIOverview dashboardData={dashboardData} />
 
-                        {/* Metric Cards Section */}
-                        <AttritionMetricCards />
+                    {/* Filters Section */}
+                    <AttritionFilters />
 
-                        {/* Widgets Section */}
-                        <AttritionWidgets />
-                    </div>
+                    {/* Metric Cards Section */}
+                    <AttritionMetricCards />
+
+                    {/* Widgets Section */}
+                    <AttritionWidgets />
                 </div>
+            </div>
 
-                {/* Floating Chat Sidekick */}
-                <FloatingChatSidekick />
-            </main>
+            {/* Floating Chat Sidekick */}
+            <FloatingChatSidekick />
+        </main>
+    );
+}
+
+export default function AttritionDashboardPage() {
+    return (
+        <DashboardContainer userId="user-1" role="admin">
+            <AttritionFilterProvider>
+                <AttritionDashboardContent />
+            </AttritionFilterProvider>
         </DashboardContainer>
     );
 }

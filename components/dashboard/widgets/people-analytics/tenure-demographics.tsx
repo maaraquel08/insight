@@ -4,8 +4,8 @@ import { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { Users } from "lucide-react";
 import type { ApexOptions } from "apexcharts";
-// @ts-ignore - JavaScript file
 import { getTenureDemographicsData } from "@/app/data/attritionData";
+import { useAttritionFilters } from "@/contexts/attrition-filter-context";
 import {
     Select,
     SelectContent,
@@ -81,15 +81,16 @@ const distributionOptions = [
 ];
 
 export function TenureDemographics() {
+    const { filters } = useAttritionFilters();
     const [selectedView, setSelectedView] = useState<ViewType>("tenure");
     const [demographicsData, setDemographicsData] =
         useState<TenureDemographicsData | null>(null);
 
     useEffect(() => {
         setDemographicsData(
-            getTenureDemographicsData() as TenureDemographicsData
+            getTenureDemographicsData(filters) as TenureDemographicsData
         );
-    }, []);
+    }, [filters]);
 
     // Base bar chart options
     const baseBarChartOptions: Partial<ApexOptions> = useMemo(

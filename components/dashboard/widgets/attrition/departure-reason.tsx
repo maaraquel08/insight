@@ -4,8 +4,8 @@ import { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { LogOut } from "lucide-react";
 import type { ApexOptions } from "apexcharts";
-// @ts-ignore - JavaScript file
 import { getDepartureReasonData } from "@/app/data/attritionData";
+import { useAttritionFilters } from "@/contexts/attrition-filter-context";
 
 // Dynamically import ApexCharts to avoid SSR issues
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
@@ -26,13 +26,14 @@ interface DepartureReasonData {
 }
 
 export function DepartureReason() {
+    const { filters } = useAttritionFilters();
     const [departureData, setDepartureData] =
         useState<DepartureReasonData | null>(null);
 
     useEffect(() => {
-        const data = getDepartureReasonData() as DepartureReasonData;
+        const data = getDepartureReasonData(filters) as DepartureReasonData;
         setDepartureData(data);
-    }, []);
+    }, [filters]);
 
     // Donut chart options for Voluntary vs Involuntary
     const voluntaryInvoluntaryChartOptions: ApexOptions = useMemo(
