@@ -233,16 +233,21 @@ export function AttritionByDepartment() {
                     const deptData = jobRoleData[dataPointIndex];
                     
                     const roleKeys = ["role1", "role2", "role3"];
+                    const colors = ["#ff6b35", "#17c9ad", "#3399ff"];
                     
                     // Only show the hovered role
                     const hoveredSeries = series[seriesIndex];
                     const separations = hoveredSeries[dataPointIndex];
                     const roleKey = roleKeys[seriesIndex];
                     const roleLabel = roleLabels[roleKey] || `Role ${seriesIndex + 1}`;
+                    const color = colors[seriesIndex];
                     
                     return `
                         <div class="bg-white px-2 py-1.5 text-xs shadow-md rounded">
-                            <div class="font-medium text-gray-900 mb-2">${roleLabel}</div>
+                            <div class="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                                <span class="inline-block w-3 h-3 rounded-sm" style="background-color: ${color}"></span>
+                                ${roleLabel}
+                            </div>
                             <div class="space-y-1">
                                 <div class="flex items-center justify-between gap-4">
                                     <span class="text-gray-500">Attrition Rate</span>
@@ -308,15 +313,21 @@ export function AttritionByDepartment() {
                     const data = voluntaryInvoluntaryChartData.data?.[dataPointIndex];
                     if (!data) return "";
                     
+                    const colors = ["#17ad49", "#ff3333"];
+                    
                     // Only show the hovered series
                     const hoveredSeries = series[seriesIndex];
                     const rate = hoveredSeries[dataPointIndex];
                     const name = seriesIndex === 0 ? "Voluntary" : "Involuntary";
                     const separations = seriesIndex === 0 ? data.voluntaryCount : data.involuntaryCount;
+                    const color = colors[seriesIndex];
                     
                     return `
                         <div class="bg-white px-2 py-1.5 text-xs shadow-md rounded">
-                            <div class="font-medium text-gray-900 mb-2">${name}</div>
+                            <div class="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                                <span class="inline-block w-3 h-3 rounded-sm" style="background-color: ${color}"></span>
+                                ${name}
+                            </div>
                             <div class="space-y-1">
                                 <div class="flex items-center justify-between gap-4">
                                     <span class="text-gray-500">Attrition Rate</span>

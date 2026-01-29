@@ -39,7 +39,12 @@ export function AttritionFilterProvider({ children }: { children: ReactNode }) {
 export function useAttritionFilters() {
     const context = useContext(AttritionFilterContext);
     if (context === undefined) {
-        throw new Error("useAttritionFilters must be used within an AttritionFilterProvider");
+        // Return default filters when provider is not available (e.g., widgets used in main dashboard)
+        return {
+            filters: defaultFilters,
+            setFilters: () => {},
+            clearFilters: () => {},
+        };
     }
     return context;
 }

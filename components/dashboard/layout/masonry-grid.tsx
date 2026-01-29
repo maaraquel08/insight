@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 
 interface MasonryGridProps {
@@ -12,11 +12,24 @@ interface MasonryGridProps {
 /**
  * Reusable masonry grid component for dashboard widgets
  * Uses CSS columns for true masonry layout with uniform 24px spacing
+ * Responsive: 1 column on mobile, 2 columns on desktop
  */
 export function MasonryGrid({ children, className = "", style }: MasonryGridProps) {
+    const [columnCount, setColumnCount] = useState(1);
+
+    useEffect(() => {
+        const updateColumnCount = () => {
+            setColumnCount(window.innerWidth >= 768 ? 2 : 1);
+        };
+
+        updateColumnCount();
+        window.addEventListener("resize", updateColumnCount);
+        return () => window.removeEventListener("resize", updateColumnCount);
+    }, []);
+
     const masonryStyle: CSSProperties = {
-        columnCount: 2,
-        columnGap: "24px",
+        columnCount,
+        columnGap: columnCount === 1 ? "0px" : "24px",
         columnFill: "balance" as const,
         ...style,
     };

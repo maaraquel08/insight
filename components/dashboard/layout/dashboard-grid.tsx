@@ -196,8 +196,8 @@ export function DashboardGrid() {
 
                           return (
                               <div
+                                  className="w-full md:w-[calc(50%-0.75rem)]"
                                   style={{ 
-                                      width: "calc(50% - 0.75rem)", 
                                       opacity: 0.9 
                                   }}
                               >

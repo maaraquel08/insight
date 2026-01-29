@@ -10,7 +10,7 @@ export default function DashboardPage() {
     return (
         <DashboardContainer userId="user-1" role="admin">
             <main className="bg-[#f1f2f3] min-h-screen flex flex-col">
-                <div className="flex flex-col gap-6 p-10 flex-1">
+                <div className="flex flex-col gap-6 p-4 md:p-10 flex-1">
                     <div className="flex flex-col gap-6 items-start max-w-[1320px] w-full mx-auto">
                         {/* Dashboard Tabs */}
                         <div className="w-full">

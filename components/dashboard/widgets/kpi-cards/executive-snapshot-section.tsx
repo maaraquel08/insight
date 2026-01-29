@@ -276,7 +276,7 @@ export function ExecutiveSnapshotSection() {
 
     if (!headcountData || !attritionData || !leaveData || cards.length === 0) {
         return (
-            <div className="flex gap-6 w-full">
+            <div className="flex flex-col md:flex-row gap-6 w-full">
                 {[...Array(4)].map((_, i) => (
                     <div key={i} className="flex-1 min-w-0">
                         <div className="bg-[#f7f8f8] rounded-lg p-4 h-32 animate-pulse" />
@@ -289,7 +289,7 @@ export function ExecutiveSnapshotSection() {
     if (!isEditMode) {
         // Render without drag-and-drop when not in edit mode
         return (
-            <div className="flex gap-6 w-full">
+            <div className="flex flex-col md:flex-row gap-6 w-full">
                 {cards.map((card) => {
                     const widgetLayout = cardToWidgetLayout(card);
                     return (
@@ -319,7 +319,7 @@ export function ExecutiveSnapshotSection() {
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
         >
-            <div className="flex gap-6 w-full">
+            <div className="flex flex-col md:flex-row gap-6 w-full">
                 <SortableContext
                     items={cards.map((c) => c.id)}
                     strategy={horizontalListSortingStrategy}

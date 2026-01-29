@@ -78,7 +78,7 @@ function AttritionMetricCards() {
     };
 
     return (
-        <div className="flex gap-6 w-full">
+        <div className="flex flex-col md:flex-row gap-6 w-full">
             <div className="flex-1 min-w-0">
                 <DraggableWidgetWrapper layout={overallAttritionLayout}>
                     <ExecutiveSnapshotCard

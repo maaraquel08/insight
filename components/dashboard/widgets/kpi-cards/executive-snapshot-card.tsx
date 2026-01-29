@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
-import { CaretUp, CaretDown, Sparkle } from "phosphor-react";
+import { CaretUp, CaretDown } from "phosphor-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 interface ExecutiveSnapshotCardProps {
@@ -81,11 +81,6 @@ export function ExecutiveSnapshotCard({
     };
 
     const { value: percentage, isIncrease } = extractChangeInfo(change);
-    const handleAskSidekick = () => {
-        if (onAskSidekick) {
-            onAskSidekick();
-        }
-    };
 
     // Generate simple computation explanations
     const getMetricComputation = () => {
@@ -141,34 +136,34 @@ export function ExecutiveSnapshotCard({
 
     return (
         <div
-            className="flex flex-col items-start overflow-hidden relative rounded-xl w-full h-auto"
+            className="flex flex-col items-start overflow-hidden relative rounded-xl w-full h-auto min-w-0"
             style={{
                 backgroundImage:
                     "linear-gradient(-58.45deg, rgba(245, 243, 255, 1) 2.45%, rgba(238, 233, 254, 1) 30.19%, rgba(240, 253, 244, 1) 79.1%), linear-gradient(90deg, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 1) 100%)",
             }}
         >
             {/* Body Section */}
-            <div className="bg-white border border-[#d9dede] border-solid relative rounded-xl shrink-0 w-full">
+            <div className="bg-white border border-[#d9dede] border-solid relative rounded-xl shrink-0 w-full min-w-0 overflow-hidden">
                 <div className="flex flex-col gap-4 p-4">
                     {/* Title */}
-                    <div className="flex gap-1 items-center w-full">
-                        <p className="text-base text-[#738482] font-normal leading-6 flex-1">
+                    <div className="flex gap-1 items-center w-full min-w-0">
+                        <p className="text-base text-[#738482] font-normal leading-6 flex-1 min-w-0 truncate">
                             {title}
                         </p>
-                        <div className="w-6 h-6 shrink-0">{icon}</div>
+                        <div className="w-6 h-6 shrink-0 flex-shrink-0">{icon}</div>
                     </div>
 
                     {/* Details */}
-                    <div className="flex flex-col gap-2">
-                        <p className="text-[28px] font-medium text-[#262b2b] leading-9 tracking-[-0.7px]">
+                    <div className="flex flex-col gap-2 min-w-0">
+                        <p className="text-[28px] font-medium text-[#262b2b] leading-9 tracking-[-0.7px] break-words">
                             {value}
                         </p>
                         {/* Change Badge with vs last period text */}
-                        <div className="flex gap-1 items-center">
+                        <div className="flex gap-1 items-center min-w-0 flex-wrap">
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <div
-                                        className={`inline-flex items-center justify-center gap-0.5 px-1 py-1 rounded-md border border-solid cursor-help ${
+                                        className={`inline-flex items-center justify-center gap-0.5 px-1 py-1 rounded-md border border-solid cursor-help shrink-0 ${
                                             changeType === "positive"
                                                 ? "bg-[#dcfce6] border-[#158039]"
                                                 : "bg-[#fee2e2] border-[#b61f27]"
@@ -239,31 +234,11 @@ export function ExecutiveSnapshotCard({
                                     </div>
                                 </TooltipContent>
                             </Tooltip>
-                            <p className="text-sm font-normal text-[#5d6c6b] leading-5 whitespace-nowrap">
+                            <p className="text-sm font-normal text-[#5d6c6b] leading-5 whitespace-nowrap shrink-0">
                                 vs last period
                             </p>
                         </div>
                     </div>
-
-                    {/* Ask Sidekick Button */}
-                    <button
-                        onClick={handleAskSidekick}
-                        className="bg-white border border-[#b8c1c0] border-solid relative rounded-lg shrink-0 w-fit h-fit hover:bg-gray-50 transition-colors cursor-pointer"
-                    >
-                        <div className="flex items-center justify-center px-2 py-3 gap-2">
-                            <div className="px-1">
-                                <p className="text-sm font-medium text-[#262b2b] leading-4 whitespace-nowrap">
-                                    Ask Sidekick
-                                </p>
-                            </div>
-                            <div className="w-4 h-4 shrink-0 relative">
-                                <Sparkle
-                                    weight="fill"
-                                    className="w-4 h-4 text-[#8139ee]"
-                                />
-                            </div>
-                        </div>
-                    </button>
                 </div>
             </div>
         </div>
